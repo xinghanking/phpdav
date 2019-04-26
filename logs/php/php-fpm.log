@@ -1,0 +1,119 @@
+[19-Apr-2019 15:01:11] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:02:46] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:06:29] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:06:29] ERROR: unable to bind listening socket for address '/home/work/phpdav/var/run/php-cgi.sock': No such file or directory (2)
+[19-Apr-2019 15:06:29] ERROR: FPM initialization failed
+[19-Apr-2019 15:08:22] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:08:22] NOTICE: fpm is running, pid 4814
+[19-Apr-2019 15:08:22] NOTICE: ready to handle connections
+[19-Apr-2019 15:08:22] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 15:12:20] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:12:20] NOTICE: Terminating ...
+[19-Apr-2019 15:12:20] NOTICE: exiting, bye-bye!
+[19-Apr-2019 15:12:28] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:12:33] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:12:34] NOTICE: fpm is running, pid 4839
+[19-Apr-2019 15:12:34] NOTICE: ready to handle connections
+[19-Apr-2019 15:12:34] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 15:18:07] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:18:07] NOTICE: Terminating ...
+[19-Apr-2019 15:18:07] NOTICE: exiting, bye-bye!
+[19-Apr-2019 15:18:09] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:18:09] NOTICE: fpm is running, pid 4859
+[19-Apr-2019 15:18:09] NOTICE: ready to handle connections
+[19-Apr-2019 15:18:09] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 15:20:26] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:20:29] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:20:36] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:23:00] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:23:00] NOTICE: Terminating ...
+[19-Apr-2019 15:23:00] NOTICE: exiting, bye-bye!
+[19-Apr-2019 15:23:02] NOTICE: configuration file /home/work/phpdav/conf/php/php-fpm.conf test is successful
+
+[19-Apr-2019 15:23:03] NOTICE: fpm is running, pid 4893
+[19-Apr-2019 15:23:03] NOTICE: ready to handle connections
+[19-Apr-2019 15:23:03] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:15:59] NOTICE: Terminating ...
+[19-Apr-2019 16:15:59] NOTICE: exiting, bye-bye!
+[19-Apr-2019 16:21:12] NOTICE: fpm is running, pid 4996
+[19-Apr-2019 16:21:12] NOTICE: ready to handle connections
+[19-Apr-2019 16:21:12] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:21:17] NOTICE: Terminating ...
+[19-Apr-2019 16:21:17] NOTICE: exiting, bye-bye!
+[19-Apr-2019 16:23:44] NOTICE: fpm is running, pid 5034
+[19-Apr-2019 16:23:44] NOTICE: ready to handle connections
+[19-Apr-2019 16:23:44] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:25:34] NOTICE: Terminating ...
+[19-Apr-2019 16:25:34] NOTICE: exiting, bye-bye!
+[19-Apr-2019 16:25:36] NOTICE: fpm is running, pid 5051
+[19-Apr-2019 16:25:36] NOTICE: ready to handle connections
+[19-Apr-2019 16:25:36] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:27:26] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 16:27:26] ERROR: FPM initialization failed
+[19-Apr-2019 16:27:29] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 16:27:29] ERROR: FPM initialization failed
+[19-Apr-2019 16:27:45] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 16:27:45] ERROR: FPM initialization failed
+[19-Apr-2019 16:28:56] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 16:28:56] ERROR: FPM initialization failed
+[19-Apr-2019 16:30:03] NOTICE: fpm is running, pid 5124
+[19-Apr-2019 16:30:03] NOTICE: ready to handle connections
+[19-Apr-2019 16:30:03] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:30:08] NOTICE: Terminating ...
+[19-Apr-2019 16:30:08] NOTICE: exiting, bye-bye!
+[19-Apr-2019 16:30:29] NOTICE: fpm is running, pid 5145
+[19-Apr-2019 16:30:29] NOTICE: ready to handle connections
+[19-Apr-2019 16:30:29] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 16:30:39] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 16:30:39] ERROR: FPM initialization failed
+[19-Apr-2019 16:31:38] NOTICE: fpm is running, pid 5180
+[19-Apr-2019 16:31:38] NOTICE: ready to handle connections
+[19-Apr-2019 16:31:38] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 17:21:12] NOTICE: Terminating ...
+[19-Apr-2019 17:21:12] NOTICE: exiting, bye-bye!
+[19-Apr-2019 17:24:13] NOTICE: fpm is running, pid 5245
+[19-Apr-2019 17:24:13] NOTICE: ready to handle connections
+[19-Apr-2019 17:24:13] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 17:30:11] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[19-Apr-2019 17:30:11] ERROR: FPM initialization failed
+[19-Apr-2019 17:31:40] NOTICE: fpm is running, pid 5326
+[19-Apr-2019 17:31:40] NOTICE: ready to handle connections
+[19-Apr-2019 17:31:40] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 17:31:43] NOTICE: Terminating ...
+[19-Apr-2019 17:31:43] NOTICE: exiting, bye-bye!
+[19-Apr-2019 17:31:45] NOTICE: fpm is running, pid 5344
+[19-Apr-2019 17:31:45] NOTICE: ready to handle connections
+[19-Apr-2019 17:31:45] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 17:31:47] NOTICE: Terminating ...
+[19-Apr-2019 17:31:47] NOTICE: exiting, bye-bye!
+[19-Apr-2019 17:33:20] NOTICE: fpm is running, pid 5367
+[19-Apr-2019 17:33:20] NOTICE: ready to handle connections
+[19-Apr-2019 17:33:20] NOTICE: systemd monitor interval set to 10000ms
+[19-Apr-2019 17:33:22] NOTICE: Terminating ...
+[19-Apr-2019 17:33:22] NOTICE: exiting, bye-bye!
+[19-Apr-2019 17:33:24] NOTICE: fpm is running, pid 5382
+[19-Apr-2019 17:33:24] NOTICE: ready to handle connections
+[19-Apr-2019 17:33:24] NOTICE: systemd monitor interval set to 10000ms
+[20-Apr-2019 05:57:57] ERROR: Another FPM instance seems to already listen on /home/work/phpdav/var/run/php-cgi.sock
+[20-Apr-2019 05:57:57] ERROR: FPM initialization failed
+[20-Apr-2019 05:58:47] NOTICE: fpm is running, pid 9051
+[20-Apr-2019 05:58:47] NOTICE: ready to handle connections
+[20-Apr-2019 05:58:47] NOTICE: systemd monitor interval set to 10000ms
+[20-Apr-2019 05:59:01] NOTICE: Terminating ...
+[20-Apr-2019 05:59:01] NOTICE: exiting, bye-bye!
+[20-Apr-2019 05:59:06] NOTICE: fpm is running, pid 9078
+[20-Apr-2019 05:59:06] NOTICE: ready to handle connections
+[20-Apr-2019 05:59:06] NOTICE: systemd monitor interval set to 10000ms
