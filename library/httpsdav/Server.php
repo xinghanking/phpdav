@@ -74,18 +74,12 @@ class HttpsDav_Server
             include_once BASE_ROOT . DIRECTORY_SEPARATOR . 'handlers' . DIRECTORY_SEPARATOR . $this->_route[REQUEST_METHOD] . '.php';
         });
         $className = 'Handler_' . $this->_route[REQUEST_METHOD];
-        $message = 'Request Headers:' . PHP_EOL . print_r(HttpsDav_Request::$_Headers, true) . PHP_EOL;
-        $msg = 'Request Resource: ' . REQUEST_RESOURCE . PHP_EOL . print_r($_SERVER, true) . PHP_EOL . $message;
-        file_put_contents(BASE_ROOT . '/logs/access.log', $msg, FILE_APPEND);
         $objHandler = new $className();
         $arrResponse = $objHandler->execute();
         if (isset($arrResponse['code']) && isset(HttpsDav_StatusCode::$message[$arrResponse['code']])) {
             self::response_message($arrResponse);
         }
         fastcgi_finish_request();
-        //$path = '/home/work/phpdav/logs/debug/' . $this->_route[REQUEST_METHOD] .'log';
-        //$log = print_r(['server' => $_SERVER,'headers' => HttpsDav_Request::$_Headers, 'body' => HttpsDav_Request::getInputContent(), 'response' => $arrResponse], true);
-        //file_put_contents($path, $log, FILE_APPEND);
     }
 
     /**
@@ -173,16 +167,6 @@ class HttpsDav_Server
         if (isset($data['body']) && is_string($data['body'])) {
             file_put_contents('php://output', $data['body']);
         }
-        $msg = ['Server'=>$_SERVER, 'Request' => ['Headers' => HttpsDav_Request::$_Headers], 'Response' => ['Headers'=>$headers]];
-        if(REQUEST_METHOD != 'PUT'){
-            $msg['Request']['Body'] =HttpsDav_Request::getInputContent();
-        }
-        if(REQUEST_METHOD != 'GET' && isset($data['body'])){
-            $msg['Response']['Body'] = $data['body'];
-        }
-        file_put_contents(BASE_ROOT . '/logs/webdav/access.log', print_r($msg, true), FILE_APPEND);
-        //$message = $_SERVER['REQUEST_METHOD'] . PHP_EOL . print_r($_SERVER, true) . PHP_EOL . HttpsDav_Request::getInputContent() . PHP_EOL . 'reaponse:' . PHP_EOL . print_r(headers_list(), true) . print_r($data, true) . PHP_EOL;
-        //HttpsDav_Log::debug($message);
     }
 
     /**

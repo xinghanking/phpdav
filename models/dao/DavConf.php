@@ -27,7 +27,7 @@ class Dao_DavConf extends HttpsDav_Db
         $resourceInfo =Dao_DavResource::getInstance()->getResourceConf($path);
         $row = ['http_host' => $http_host, 'resource_id' => $resourceInfo['id']];
         if ($reset) {
-            return self::getInstance()->replace(['resource_id' => $resourceInfo['id'], '`http_host`=' => $http_host]);
+            return self::getInstance()->replace($row);
         } else{
             return self::getInstance()->insert($row);
         }

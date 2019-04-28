@@ -42,16 +42,18 @@ class Dao_ResourceProp extends HttpsDav_Db
             $mtime = empty($arrStatList['mtime']) ? max($atime, $mtime) : intval($arrStatList['mtime']);
             $ctime = min($ctime, $mtime);
         }
-        $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
+        if (is_file($info['path'])) {
+            $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
+            $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
+        }else{
+            $arrProperties['getcontentlength'] = HttpsDav_PhyOperation::getDirSize($info['path']);
+        }
         $info['content_length'] = $arrProperties['getcontentlength'];
-        $arrProperties['getetag'] = dechex($arrProperties['getcontentlength']) . '-' . dechex($mtime);
         if (isset($info['etag']) && $info['etag'] == $arrProperties['getetag']) {
             return true;
         }
         $info['etag'] = $arrProperties['getetag'];
-        if (is_file($info['path'])) {
-            $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
-        }
+        $arrProperties['getetag'] = dechex($arrProperties['getcontentlength']) . '-' . dechex($mtime);
         $info['last_modified'] = $mtime;
         $info['content_type'] = $arrProperties['getcontenttype'];
         $arrProperties['creationdate'] = gmdate('Y-m-d\TH:i:s\Z', $ctime);

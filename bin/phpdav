@@ -9,18 +9,42 @@ BASE_ROOT=$(readlink -f `dirname "$0"`/..)
 #nginx程序地址
 NGINX_EXEC="$BASE_ROOT/server/sbin/nginx"
 
-#nginx运行目录
+#nginx安装目录
 NGINX_ROOT="$BASE_ROOT/server/nginx"
 
 #nginx配置
 NGINX_CONF="$BASE_ROOT/conf/nginx/nginx.conf"
 
+#nginx程序pid文件
+PID_FILE="$BASE_ROOT/server/run/nginx.pid"
+
 LOCK_UX="$BASE_ROOT/server/lock/nginx"
+
+PHP_FPM_PROC="$BASE_ROOT/server/php/php-fpm.sh"
 
 [ ! -x $NGINX_EXEC ] && echo "nginx exec file is not set or corrupted" && exit 5
 [ ! -r $NGINX_CONF ] && echo "nginx config file is not set or can not read" && exit 6
 
-start() {
+php_status() {
+    $PHP_FPM_PROC status >&/dev/null 2>&1
+    return $?   
+}
+
+nx_status(){
+    pid=-1
+    if [[ -r $PID_FILE ]]; then
+        pid=`cat $PID_FILE`
+        if [ $(ps -p $pid|wc -l) -le 1 ]; then
+            pid=-1
+        fi
+    fi
+    [ $pid -gt 0 ]
+    return $?
+}
+
+nx_start() {
+    php_status || $PHP_FPM_PROC start
+    nx_status && echo 'phpdav is running.' && exit
     echo -n $"Starting nginx: "
     $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF
     retval=$?
@@ -28,7 +52,7 @@ start() {
     return $retval
 }
 
-stop() {
+nx_stop() {
     echo -n $"Stopping nginx: "
     $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s stop
     retval=$?
@@ -36,27 +60,36 @@ stop() {
     return $retval
 }
 
-reload() {
+nx_reopen() {
+    echo -n $"Reopening nginx: "
+    $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s reopen
+    retval=$?
+    [ $retval -eq 0 ] && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
+    return $retval
+}
+
+nx_reload() {
     echo -n $"Reloading nginx: "
     $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s reload
-    RETVAL=$?
+    retval=$?
+    [ $retval -eq 0 ] && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
     return $retval
 }
 
 case "$1" in
     start)
-        start
+        nx_start
         ;;
     stop)
-        stop
+        nx_status && nx_stop
+        php_status && $PHP_FPM_PROC stop
         ;;
     restart)
-        stop
-        sleep 1
-        start
+        php_status && $PHP_FPM_PROC restart || $PHP_FPM_PROC start
+        nx_status && nx_reopen || nx_start
         ;;
     reload)
-        reload
+        nx_status && nx_reload || nx_start
         ;;
     *)
         echo $"Usage: $0 {start|stop|restart|reload}"

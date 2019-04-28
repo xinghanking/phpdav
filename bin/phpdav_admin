@@ -1,0 +1,19 @@
+#!/home/work/lnp/php/bin/php
+<?php
+require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'conf/config.ini.php';
+$objHttpsDavServer = HttpsDav_Server::init();
+$params = getopt('h:p:');
+if(empty($params['h']) || empty($params['p'])){
+    return false;
+}
+$host = trim($params['h']);
+$path = trim($params['p']);
+if(false === is_dir($params['p'])) {
+    echo 'Wrong enter. Path: ' . $params['p'] . ' not exist.'  . PHP_EOL;
+}
+$res= Dao_DavConf::setDavRoot($host, $path, true);
+if(false === $res) {
+    echo 'Execute failute!' . PHP_EOL;
+}else {
+    echo 'Execute Success!' . PHP_EOL . $path . '  ==>  ' . $path . PHP_EOL;
+}

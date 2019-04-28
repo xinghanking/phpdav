@@ -4,7 +4,7 @@
  * Class HttpsDav_Log
  */
 class HttpsDav_Log {
-    const LOG_DIR = BASE_ROOT . DIRECTORY_SEPARATOR . 'logs';
+    const LOG_DIR = BASE_ROOT . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'phpdav';
     const DEBUG_LOG_DIR  = self::LOG_DIR . DIRECTORY_SEPARATOR .'debug';
     const ACCESS_LOG_DIR = self::LOG_DIR . DIRECTORY_SEPARATOR . 'access';
     const ERROR_LOG_DIR  = self::LOG_DIR . DIRECTORY_SEPARATOR . 'error.log';

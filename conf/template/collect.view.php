@@ -6,6 +6,10 @@ $collectView = <<<COLLECT_VIEW_HTML
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>Index of {$showPath}</title>
     <style type="text/css">
+        #setpath{
+            width: 1000px;
+            text-align: right;
+        }
         table {
             width: 1000px;
             border-collapse: collapse;

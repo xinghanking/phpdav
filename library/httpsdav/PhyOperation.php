@@ -174,4 +174,40 @@ class HttpsDav_PhyOperation
         }
         return $res;
     }
+
+    /**
+     * 获取文件目录大小
+     * @param  string $dir 文件目录路径
+     * @return int
+     */
+    public static function getDirSize($dir){
+        if(isset($_SESSION['PHPDAV_DIR_SIZE'][$dir]) && intval($_SESSION['PHPDAV_DIR_SIZE'][$dir])){
+            return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
+        }
+        $_SESSION['PHPDAV_DIR_SIZE'][$dir] = 0;
+        if(PHP_OS == 'Linux'){
+            exec('du -b --max-depth=1 ' . $dir, $output,$status);
+            if($status === 0) {
+                foreach($output as $info){
+                    $info = preg_split('/\s+/i', $info,2);
+                    $_SESSION['PHPDAV_DIR_SIZE'][$info[1]] = $info[0];
+                }
+            }
+        } else {
+            $children = scandir($dir);
+            $children = array_diff($children, ['.', '..']);
+            if(empty($children)){
+                return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
+            }
+            foreach($children as $d){
+                $d = $dir . DIRECTORY_SEPARATOR . $d;
+                if(is_dir($d)){
+                    $_SESSION['PHPDAV_DIR_SIZE'][$dir] += self::getDirSize($d);
+                }else{
+                    $_SESSION['PHPDAV_DIR_SIZE'][$dir] += filesize($d);
+                }
+            }
+        }
+        return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
+    }
 }

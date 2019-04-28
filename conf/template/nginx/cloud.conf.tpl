@@ -1,8 +1,8 @@
 server {
-    listen       8443;
-    server_name  192.168.1.105 192.168.84.3;
+    listen       {listen};
+    server_name  {server_name};
 
-    access_log                    /home/work/phpdav/logs/nginx/access.log  main;
+    access_log                    {base_root}/logs/nginx/access.log  main;
     charset                       utf-8;
     sendfile                      on;
     tcp_nodelay                   on;
@@ -11,9 +11,9 @@ server {
     client_body_in_single_buffer  on;
 
     location / {
-        root                          /home/work/phpdav/interface;
+        root                          {base_root}/interface;
         rewrite                       .*  /index.php break;
-        fastcgi_pass                  unix:/home/work/phpdav/server/run/php-cgi.sock;
+        fastcgi_pass                  unix:{base_root}/server/run/php-cgi.sock;
         fastcgi_keep_conn             on;
         fastcgi_limit_rate            0;
         fastcgi_request_buffering     on;

@@ -38,7 +38,7 @@ class Dao_DavResource extends HttpsDav_Db
                         'path'           => $path,
                         'level_no'       => 1,
                         'content_type'   => Dao_ResourceProp::MIME_TYPE_DIR,
-                        'content_length' => disk_total_space($path),
+                        'content_length' => HttpsDav_PhyOperation::getDirSize($path) + disk_total_space($path),
                         'etag'           => '',
                         'upper_id'       => 0
                     ];
