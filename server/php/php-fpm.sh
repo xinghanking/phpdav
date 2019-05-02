@@ -29,8 +29,11 @@ fi
 # PID文件路径(在php-fpm.conf设置)
 PID_FILE="$BASE_ROOT/server/run/php-fpm.pid"
 
-PROC_NAME='php-fpm'
+PROC_NAME='phpdav_php-fpm'
 LOCK_UX="$BASE_ROOT/server/lock/$PROC_NAME"
+
+DAV_USER_CONF="$BASE_ROOT/conf/php/davs/user.conf"
+CURRENT_USER=`whoami`
 
 pid=-1
 if [ -r $PID_FILE ]; then
@@ -49,10 +52,18 @@ rh_status() {
 rh_start() {
     touch $LOCK_UX && echo -n "Starting $PROC_NAME ...    "
     if [ $? -eq 0 ] ; then
+        if [ $CURRENT_USER = "root" ]; then
+            sed -i 's/;user =/user =/g' $DAV_USER_CONF
+            sed -i 's/;group =/group =/g' $DAV_USER_CONF
+        fi
         $PROC_FILE -p $BASE_ROOT -c $PHP_INI -y $CONFIGFILE -D && echo -e "[ \e[32m OK \e[0m ]"
         retval=$?
         if [ $retval -ne 0 ]; then
             echo -e "[ \e[31m fail \e[0m ]"
+        fi
+        if [ $CURRENT_USER = "root" ]; then
+            sed -i 's/user =/;user =/g' $DAV_USER_CONF
+            sed -i 's/group =/;group =/g' $DAV_USER_CONF
         fi
     fi
 }
@@ -78,16 +89,6 @@ rh_stop() {
     return 1
 }
 
-rh_reload() {
-    if [ $pid -gt 0 ]; then
-        kill -HUP $pid
-    else
-        rh_start
-    fi
-    retval=$?
-    [ $retval -eq 0 ] && echo -e "reload $PROC_NAME ...    [ \e[32m OK \e[0m ]" || echo -e " [ \e[31m fail \e[0m ]"
-}
-
 case "$1" in
     status)
         rh_status
@@ -99,10 +100,6 @@ case "$1" in
     stop)
         rh_status && rh_stop
         ;;
-    reload)
-        echo "Reloading $PROC_NAME configuration..."
-        rh_status && rh_reload || rh_start
-        ;;
     restart)
         echo "Restarting $PROC_NAME"
         rh_status && rh_stop
@@ -110,7 +107,7 @@ case "$1" in
         rh_start
         ;;
     *)
-         echo "Usage: $SCRIPTNAME {start|stop|restart|reload}" >&2
+         echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
          exit 3
         ;;
 esac

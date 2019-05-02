@@ -1,5 +1,5 @@
 server {
-    listen       {listen};
+    listen       8443;
     server_name  {server_name};
 
     access_log                    {base_root}/logs/nginx/access.log  main;

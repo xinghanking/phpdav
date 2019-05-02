@@ -7,7 +7,7 @@
 BASE_ROOT=$(readlink -f `dirname "$0"`/..)
 
 #nginx程序地址
-NGINX_EXEC="$BASE_ROOT/server/sbin/nginx"
+NGINX_EXEC="$BASE_ROOT/server/sbin/phpdav_nginx"
 
 #nginx安装目录
 NGINX_ROOT="$BASE_ROOT/server/nginx"
@@ -18,6 +18,9 @@ NGINX_CONF="$BASE_ROOT/conf/nginx/nginx.conf"
 #nginx程序pid文件
 PID_FILE="$BASE_ROOT/server/run/nginx.pid"
 
+#程序名
+PROC_NAME="phpdav_nginx"
+
 LOCK_UX="$BASE_ROOT/server/lock/nginx"
 
 PHP_FPM_PROC="$BASE_ROOT/server/php/php-fpm.sh"
@@ -25,6 +28,11 @@ PHP_FPM_PROC="$BASE_ROOT/server/php/php-fpm.sh"
 [ ! -x $NGINX_EXEC ] && echo "nginx exec file is not set or corrupted" && exit 5
 [ ! -r $NGINX_CONF ] && echo "nginx config file is not set or can not read" && exit 6
 
+NGINX_EXEC="$NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF"
+EXEC_USER_INFO=(`ls -l $BASE_ROOT/interface/index.php`)
+DAV_USER=${EXEC_USER_INFO[2]}
+DAV_GROUP=${EXEC_USER_INFO[3]}
+CURRENT_USER=`whoami`
 php_status() {
     $PHP_FPM_PROC status >&/dev/null 2>&1
     return $?   
@@ -45,32 +53,34 @@ nx_status(){
 nx_start() {
     php_status || $PHP_FPM_PROC start
     nx_status && echo 'phpdav is running.' && exit
-    echo -n $"Starting nginx: "
-    $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF
+    echo -n "Starting $PROC_NAME:         "
+    if [ $CURRENT_USER = "root" ]; then
+    	$NGINX_EXEC -g "user $DAV_USER $DAV_GROUP;"
+    else
+        $NGINX_EXEC
+    fi
     retval=$?
     [ $retval -eq 0 ] && touch $LOCK_UX && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
     return $retval
 }
 
 nx_stop() {
-    echo -n $"Stopping nginx: "
-    $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s stop
+    echo -n "Stopping $PROC_NAME:         "
+    $NGINX_EXEC -s stop
     retval=$?
     [ $retval -eq 0 ] && rm -f $LOCK_UX && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
     return $retval
 }
-
 nx_reopen() {
-    echo -n $"Reopening nginx: "
-    $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s reopen
+    echo -n "Reopening $PROC_NAME:        "
+    $NGINX_EXEC -s reopen
     retval=$?
     [ $retval -eq 0 ] && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
     return $retval
 }
-
 nx_reload() {
-    echo -n $"Reloading nginx: "
-    $NGINX_EXEC -p $NGINX_ROOT -c $NGINX_CONF -s reload
+    echo -n "Reloading $PROC_NAME:        "
+    $NGINX_EXEC -s reload
     retval=$?
     [ $retval -eq 0 ] && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
     return $retval

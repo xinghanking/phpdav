@@ -1,4 +1,4 @@
-#!/home/work/lnp/php/bin/php
+#!/usr/bin/php
 <?php
 require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'conf/config.ini.php';
 $objHttpsDavServer = HttpsDav_Server::init();
