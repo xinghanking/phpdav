@@ -9,9 +9,9 @@ trap 'echo "Fail unexpectedly on ${BASH_SOURCE[0]}:$LINENO!" >&2' ERR
 BASE_ROOT=$(readlink -f `dirname "$0"`/../..)
 
 # php-fpm路径
-PROC_FILE="$BASE_ROOT/server/sbin/php-fpm";
+PROC_FILE="$BASE_ROOT/server/sbin/phpdav_php-fpm";
 
-[ -x $PROC_FILE ] || PROC_FILE="$BASE_ROOT/server/bin/php-fpm"
+[ -x $PROC_FILE ] || PROC_FILE="$BASE_ROOT/server/bin/phpdav_php-fpm"
 if [ ! -x $PROC_FILE ]; then
     echo 'No executable php-fpm file was found';
     exit 1;
@@ -89,16 +89,6 @@ rh_stop() {
     return 1
 }
 
-rh_reload() {
-    if [ $pid -gt 0 ]; then
-        kill -HUP $pid
-    else
-        rh_start
-    fi
-    retval=$?
-    [ $retval -eq 0 ] && echo -e "reload $PROC_NAME ...    [ \e[32m OK \e[0m ]" || echo -e " [ \e[31m fail \e[0m ]"
-}
-
 case "$1" in
     status)
         rh_status
@@ -110,10 +100,6 @@ case "$1" in
     stop)
         rh_status && rh_stop
         ;;
-    reload)
-        echo "Reloading $PROC_NAME configuration..."
-        rh_status && rh_reload || rh_start
-        ;;
     restart)
         echo "Restarting $PROC_NAME"
         rh_status && rh_stop
@@ -121,7 +107,7 @@ case "$1" in
         rh_start
         ;;
     *)
-         echo "Usage: $SCRIPTNAME {start|stop|restart|reload}" >&2
+         echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
          exit 3
         ;;
 esac
