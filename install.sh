@@ -120,6 +120,7 @@ echo ";group = $DAV_GROUP" >> $PHPDAV_ROOT/conf/php/davs/user.conf
 ln -s $PHP_FPM_PATH $PHPDAV_ROOT/server/sbin/phpdav_php-fpm
 ln -s $NGINX_PATH $PHPDAV_ROOT/server/sbin/phpdav_nginx
 SERVER_NAMES=`hostname -I`
+mkdir -p $PHPDAV_ROOT/conf/nginx/davs
 cp $PHPDAV_ROOT/conf/template/nginx/cloud.conf.tpl $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{server_name}#$SERVER_NAMES#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{base_root}#$PHPDAV_ROOT#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
