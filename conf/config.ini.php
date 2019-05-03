@@ -1,10 +1,13 @@
 <?php
 session_start();
-$cloud = '/home/work/mycloud';
+$cloud_root = null;
 $db_conn = 'sqlite';
 $collect_view = 'collect.view.php';
 define('BASE_ROOT', dirname(__DIR__));
-define('DEF_CLOUD_ROOT', $cloud);
+define('DEF_CLOUD_ROOT', BASE_ROOT . DIRECTORY_SEPARATOR . 'mycloud');
+if (!empty($cloud_root)){
+    define('DAV_ROOT', $cloud_root);
+}
 define('DB_CONN', $db_conn);
 define('NS_DAV_URI', 'DAV:');
 define('NS_DAV_ID', 0);

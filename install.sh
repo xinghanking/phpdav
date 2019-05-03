@@ -108,6 +108,9 @@ if [ $CURRENT_USER = "root" ]; then
     chmod -R 700 $PHPDAV_ROOT/interface
 fi
 chmod -R 700 $PHPDAV_ROOT
+rm -fr $PHPDAV_ROOT/server
+mkdir -p $PHPDAV_ROOT/server
+cp -r conf/template/php $PHPDAV_ROOT/server/php
 mkdir -p $PHPDAV_ROOT/server/nginx/logs
 mkdir -p $PHPDAV_ROOT/server/run
 mkdir -p $PHPDAV_ROOT/server/lock
@@ -120,8 +123,8 @@ SERVER_NAMES=`hostname -I`
 cp $PHPDAV_ROOT/conf/template/nginx/cloud.conf.tpl $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{server_name}#$SERVER_NAMES#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{base_root}#$PHPDAV_ROOT#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
+sed -i "s#cloud_root = null#cloud_root = '$CLOUD_PATH'#g" $PHPDAV_ROOT/conf/config.ini.php
 sed -i "s:#!/usr/bin/php:$PHP_PATH:g" $PHPDAV_ROOT/bin/phpdav_admin
-ln -s $PHPDAV_ROOT/bin/phpdav $PHPDAV_ROOT/phpdav
 chown -R $DAVUSER:$DAV_GROUP $PHPDAV_ROOT
 echo '安装完成，你可以使用'
 echo "./phpdav start"

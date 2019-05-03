@@ -89,6 +89,16 @@ rh_stop() {
     return 1
 }
 
+rh_reload() {
+    if [ $pid -gt 0 ]; then
+        kill -HUP $pid
+    else
+        rh_start
+    fi
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "reload $PROC_NAME ...    [ \e[32m OK \e[0m ]" || echo -e " [ \e[31m fail \e[0m ]"
+}
+
 case "$1" in
     status)
         rh_status
@@ -100,6 +110,10 @@ case "$1" in
     stop)
         rh_status && rh_stop
         ;;
+    reload)
+        echo "Reloading $PROC_NAME configuration..."
+        rh_status && rh_reload || rh_start
+        ;;
     restart)
         echo "Restarting $PROC_NAME"
         rh_status && rh_stop
@@ -107,7 +121,7 @@ case "$1" in
         rh_start
         ;;
     *)
-         echo "Usage: $SCRIPTNAME {start|stop|restart}" >&2
+         echo "Usage: $SCRIPTNAME {start|stop|restart|reload}" >&2
          exit 3
         ;;
 esac

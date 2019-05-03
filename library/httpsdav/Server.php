@@ -48,11 +48,13 @@ class HttpsDav_Server
      */
     private function initDavInfo()
     {
-        $mangePath = Dao_DavConf::getDavRoot(HttpsDav_Request::$_Headers['Host']);
-        if (empty($mangePath)) {
-            Dao_DavConf::setDavRoot(HttpsDav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
+        if(false === defined(DAV_ROOT)){
+            $mangePath = Dao_DavConf::getDavRoot(HttpsDav_Request::$_Headers['Host']);
+            if (empty($mangePath)) {
+                Dao_DavConf::setDavRoot(HttpsDav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
+            }
+            define('DAV_ROOT', $mangePath);
         }
-        define('DAV_ROOT', $mangePath);
     }
 
     /**

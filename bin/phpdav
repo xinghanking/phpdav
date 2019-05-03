@@ -35,7 +35,7 @@ DAV_GROUP=${EXEC_USER_INFO[3]}
 CURRENT_USER=`whoami`
 php_status() {
     $PHP_FPM_PROC status >&/dev/null 2>&1
-    return $?   
+    return $?
 }
 
 nx_status(){
@@ -53,15 +53,18 @@ nx_status(){
 nx_start() {
     php_status || $PHP_FPM_PROC start
     nx_status && echo 'phpdav is running.' && exit
-    echo -n "Starting $PROC_NAME:         "
-    if [ $CURRENT_USER = "root" ]; then
-    	$NGINX_EXEC -g "user $DAV_USER $DAV_GROUP;"
-    else
-        $NGINX_EXEC
+    touch $LOCK_UX
+    if [ $? -eq 0 ]; then
+        echo -n "Starting $PROC_NAME:         "
+        if [ $CURRENT_USER = "root" ]; then
+            $NGINX_EXEC -g "user $DAV_USER $DAV_GROUP;"
+        else
+            $NGINX_EXEC
+        fi
+        retval=$?
+        [ $retval -eq 0 ] && chown -R $DAV_USER:$DAV_GROUP $BASE_ROOT && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
+        return $retval
     fi
-    retval=$?
-    [ $retval -eq 0 ] && touch $LOCK_UX && echo  -e "[ \e[32m OK \e[0m ]" || echo  -e "[ \e[31m fail \e[0m ]"
-    return $retval
 }
 
 nx_stop() {
@@ -97,9 +100,12 @@ case "$1" in
     restart)
         php_status && $PHP_FPM_PROC restart || $PHP_FPM_PROC start
         nx_status && nx_reopen || nx_start
+        chown -R $DAV_USER:$DAV_GROUP $BASE_ROOT
         ;;
     reload)
+        php_status && $PHP_FPM_PROC restart || $PHP_FPM_PROC start
         nx_status && nx_reload || nx_start
+        chown -R $DAV_USER:$DAV_GROUP $BASE_ROOT
         ;;
     *)
         echo $"Usage: $0 {start|stop|restart|reload}"
