@@ -18,6 +18,19 @@ install_exit() {
     exit 0;
 }
 
+#安装脚本说明
+install_help() {
+    echo "安装脚本使用示例："
+    echo './install.sh --nginx-path=/usr/local/nginx/sbin/nginx --php-fpm-path=/usr/local/php/sbin/php-fpm --php-path=/usr/local/php/bin/php  --user-path=phpdav --group-path=phpdav --data-dir-path=/home/phpdav/mycloud'
+    echo '说明：'
+    echo '    --nginx-path    nginx程序路径地址
+    --php-fpm-path    php-fpm程序路径地址
+    --php-path        php路径地址；可不填写，如以后要用到bin目录中php脚本工具，会使用到
+    --user            指定运行nginx和php程序的系统用户
+    --group           指定运行nginx和php程序的系统用户组
+    --data-dir-path   要映射管理的服务器目录'
+    exit 0
+}
 PHP_FPM_PATH=
 PHP_PATH=
 NGINX_PATH=
@@ -35,6 +48,7 @@ do
         --user=*)           DAV_USER="$val"     ;;
         --group=*)          DAV_GROUP="$val"    ;;
         --data-dir-path=*)  CLOUD_PATH="$val"   ;;
+        *)                  install_help        ;;
     esac
 done;
 if [ -z $PHP_FPM_PATH ]; then
@@ -120,7 +134,6 @@ echo ";group = $DAV_GROUP" >> $PHPDAV_ROOT/conf/php/davs/user.conf
 ln -s $PHP_FPM_PATH $PHPDAV_ROOT/server/sbin/phpdav_php-fpm
 ln -s $NGINX_PATH $PHPDAV_ROOT/server/sbin/phpdav_nginx
 SERVER_NAMES=`hostname -I`
-mkdir -p $PHPDAV_ROOT/conf/nginx/davs
 cp $PHPDAV_ROOT/conf/template/nginx/cloud.conf.tpl $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{server_name}#$SERVER_NAMES#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{base_root}#$PHPDAV_ROOT#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
