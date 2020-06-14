@@ -16,7 +16,6 @@ class Handler_Put extends HttpsDav_BaseHander
     protected function handler(){
         $objResource = Service_Data_Resource::getInstance(REQUEST_RESOURCE);
         if (empty($objResource) || $objResource->status == Service_Data_Resource::STATUS_FAILED) {
-            file_put_contents('/home/work/rec.log', __FILE__.':'. __LINE__, FILE_APPEND);
             return ['code' => 503];
         }
         $isLocked = $objResource->checkLocked();
@@ -45,7 +44,6 @@ class Handler_Put extends HttpsDav_BaseHander
             $res = HttpsDav_PhyOperation::move($this->arrInput['Request-Body-File'], REQUEST_RESOURCE);
         }
         if (false === $res) {
-            file_put_contents('/home/work/rec.log', __FILE__.':'. __LINE__, FILE_APPEND);
             return ['code' => 503];
         }
 
