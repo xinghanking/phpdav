@@ -227,7 +227,6 @@ class Service_Data_Resource
             }
             $_SESSION['LOCK_TOKEN'][$this->id] = $applyInfo['locktoken'];
             $setLockList[$this->id] = $applyInfo;
-            HttpsDav_Log::debug('setLockList:' . print_r($setLockList, true));
             $res = self::$objDaoDavResource->setResourcesLockinfo($setLockList);
             if ($res) {
                 $response = ['code' => 200, 'locked_info' => $applyInfo];

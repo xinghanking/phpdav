@@ -20,7 +20,6 @@ class Handler_Put extends HttpsDav_BaseHander
         }
         $isLocked = $objResource->checkLocked();
         if ($isLocked && !in_array($objResource->locked_info['locktoken'], $this->arrInput['locktoken'])) {
-            HttpsDav_Log::debug(print_r([$isLocked, $objResource->locked_info, $this->arrInput['locktoken']], true));
             return ['code' => 403];
         }
         if ($objResource->status == Service_Data_Resource::STATUS_NORMAL) {
@@ -65,9 +64,8 @@ class Handler_Put extends HttpsDav_BaseHander
             'etag'              => HttpsDav_Request::getETagList(),
             'lastmodified'      => HttpsDav_Request::getLastModified(),
             'Request-Id'        => HttpsDav_Request::$_Headers['Request-Id'],
-            'Request-Body-File' => HttpsDav_Request::$_Headers['Request-Body-File'],
+            'Request-Body-File' => isset(HttpsDav_Request::$_Headers['Request-Body-File']) ? HttpsDav_Request::$_Headers['Request-Body-File'] : null,
         ];
-        HttpsDav_Log::debug(print_r([$_SERVER, HttpsDav_Request::getInputContent()], true));
         $this->arrInput['Content-Type'] = empty(HttpsDav_Request::$_Headers['Content-Type']) ? 'text/plain' : HttpsDav_Request::$_Headers['Content-Type'];
         if (isset(HttpsDav_Request::$_Headers['Expect'])) {
             $this->arrInput['Expect'] = strtok(HttpsDav_Request::$_Headers['Expect'], '-');

@@ -29,7 +29,6 @@ class Handler_Lock extends HttpsDav_BaseHander
         if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
-        HttpsDav_Log::debug('$this->arrInput:' . PHP_EOL . print_r($this->arrInput, true));
         $arrResult = $objResource->lock($this->arrInput);
         if ($arrResult['code'] == 200) {
             $lockedInfo = $arrResult['locked_info'];

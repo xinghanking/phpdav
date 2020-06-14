@@ -144,7 +144,6 @@ class Dao_DavResource extends HttpsDav_Db
      */
     public function setResourcesLockinfo(array $lockInfoList)
     {
-        HttpsDav_Log::debug('setResourcesLockinfo: ' . print_r($lockInfoList, true));
         try {
             $objResourceProp = Dao_ResourceProp::getInstance();
             $this->beginTransaction();

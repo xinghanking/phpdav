@@ -13,11 +13,17 @@ class HttpsDav_Log {
      * @param string $message
      */
     public static function debug($message){
+        if(!file_exists(self::DEBUG_LOG_DIR)){
+            mkdir(self::DEBUG_LOG_DIR);
+        }
         $debugLogFile = self::DEBUG_LOG_DIR . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
         file_put_contents($debugLogFile, date('Y-m-d H:i:s', time()) . ' ' . $message, FILE_APPEND);
     }
 
     public static function access(){
+        if(!file_exists(self::ACCESS_LOG_DIR)){
+            mkdir(self::ACCESS_LOG_DIR);
+        }
         $accessLogFile = self::ACCESS_LOG_DIR . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
         $msg = date('Y-m-d H:i:s', time()) . ' ';
         file_put_contents($accessLogFile, $msg, FILE_APPEND);
