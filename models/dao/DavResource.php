@@ -38,7 +38,6 @@ class Dao_DavResource extends Dav_Db
                         'path'           => $path,
                         'level_no'       => 1,
                         'content_type'   => Dao_ResourceProp::MIME_TYPE_DIR,
-                        'content_length' => Dav_PhyOperation::getDirSize($path) + disk_total_space($path),
                         'etag'           => '',
                         'upper_id'       => 0
                     ];

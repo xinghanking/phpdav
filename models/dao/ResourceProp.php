@@ -10,7 +10,7 @@ class Dao_ResourceProp extends Dav_Db
     const TABLE = 'resource_prop';
 
     const MIME_TYPE_UNKNOW = 'application/unknow';
-    const MIME_TYPE_DIR    = 'application/x-director';
+    const MIME_TYPE_DIR = 'application/x-director';
 
     protected function init()
     {
@@ -45,8 +45,11 @@ class Dao_ResourceProp extends Dav_Db
         if (is_file($info['path'])) {
             $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
             $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
-        }else{
-            $arrProperties['getcontentlength'] = Dav_PhyOperation::getDirSize($info['path']);
+        } else {
+            $arrProperties['getcontentlength'] = strcmp($info['path'], DAV_ROOT) >= 0 ? Dav_PhyOperation::getDirSize($info['path']) : 0;
+            if ($info['path'] == DAV_ROOT) {
+                $arrProperties['getcontentlength'] += disk_total_space($info['path']);
+            }
         }
         $info['content_length'] = $arrProperties['getcontentlength'];
         if (isset($info['etag']) && $info['etag'] == $arrProperties['getetag']) {
@@ -104,8 +107,8 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 设置资源属性
-     * @param int    $resourceId 资源编号
-     * @param string $propName   资源属性名
+     * @param int $resourceId 资源编号
+     * @param string $propName 资源属性名
      * @param string|array $propValue 资源属性值
      * @param int $nsId 命名空间编号
      * @return bool
@@ -124,9 +127,9 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 对一个资源移除符合条件的一个属性
-     * @param  int    $resourceId 资源id
-     * @param  string $propName   被移除的属性名
-     * @param  int    $nsId       所属命名空间
+     * @param int $resourceId 资源id
+     * @param string $propName 被移除的属性名
+     * @param int $nsId 所属命名空间
      * @return int
      * @throws \Exception
      */
@@ -134,8 +137,8 @@ class Dao_ResourceProp extends Dav_Db
     {
         $conditions = [
             '`resource_id`=' . $resourceId,
-            '`ns_id`='       . $nsId,
-            "`prop_name`='"  . $propName . "'",
+            '`ns_id`=' . $nsId,
+            "`prop_name`='" . $propName . "'",
         ];
         return $this->delete($conditions);
     }
@@ -157,8 +160,8 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 查询资源的属性
-     * @param  array $fields 查询的属性选项列表数组（可查找：所属资源编号、所属命名空间、属性名、属性值）
-     * @param  array $conditions 查找条件
+     * @param array $fields 查询的属性选项列表数组（可查找：所属资源编号、所属命名空间、属性名、属性值）
+     * @param array $conditions 查找条件
      * @return array
      * @throws Exception
      */
@@ -179,7 +182,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 获取资源自身的加锁属性值
-     * @param  int   $resourceId
+     * @param int $resourceId
      * @return array
      * @throws \Exception
      */
@@ -192,7 +195,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 获取从根级以后继承的所有的加锁信息
-     * @param  string $path 资源路径
+     * @param string $path 资源路径
      * @return array
      * @throws Exception
      */
@@ -228,7 +231,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 获取一个集合（文件夹）资源内所包含的所有内部资源加锁信息
-     * @param  string $path 资源路径
+     * @param string $path 资源路径
      * @return array
      * @throws \Exception
      */
@@ -264,7 +267,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 将存储资源加锁信息转换成输出前预处理的格式
-     * @param  array $lockedInfo
+     * @param array $lockedInfo
      * @return array|null
      */
     public static function lockedInfo_decode(array $lockedInfo)
@@ -272,7 +275,7 @@ class Dao_ResourceProp extends Dav_Db
         if (empty($lockedInfo['owner']) || empty($lockedInfo['lock_time']) || empty($lockedInfo['timeout'])) {
             return $lockedInfo;
         }
-        if (time() - $lockedInfo['lock_time'] >= $lockedInfo['timeout']){
+        if (time() - $lockedInfo['lock_time'] >= $lockedInfo['timeout']) {
             return null;
         }
         if (is_array($lockedInfo['owner'])) {
@@ -305,7 +308,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 将资源属性值由程序运行使用的格式编码成存储所用的格式(json格式)
-     * @param  string|array $value
+     * @param string|array $value
      * @return string
      */
     public static function value_encode($value)
@@ -315,7 +318,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 将存储的资源属性值格式解码成程序运行所需要的格式
-     * @param  string $value
+     * @param string $value
      * @return array|string
      */
     public static function value_decode($value)
@@ -326,7 +329,7 @@ class Dao_ResourceProp extends Dav_Db
 
     /**
      * 获取资源的MIME类型
-     * @param  string $filePath 资源全路径
+     * @param string $filePath 资源全路径
      * @return string
      */
     public static function getFileMimeType($filePath)
@@ -339,7 +342,7 @@ class Dao_ResourceProp extends Dav_Db
         if (empty($mimeType)) {
             $mimeType = self::MIME_TYPE_UNKNOW;
         }
-        if (!empty($extName) && !in_array($mimeType, ['inode/x-empty',self::MIME_TYPE_UNKNOW])) {
+        if (!empty($extName) && !in_array($mimeType, ['inode/x-empty', self::MIME_TYPE_UNKNOW])) {
             $_SESSION['MIME_TYPE_LIST'][$extName] = $mimeType;
         }
         return $mimeType;
