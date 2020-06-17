@@ -151,11 +151,8 @@ class Dav_Server
         }
         foreach ($headers as $header) {
             header($header);
-        } 
-        file_put_contents('/home/web/phpdav/re.log', print_r($_SERVER, true), FILE_APPEND);
-        file_put_contents('/home/web/phpdav/re.log', print_r($headers, true) .PHP_EOL, FILE_APPEND);
+        }
         if (isset($data['body']) && is_string($data['body'])) {
-            file_put_contents('/home/web/phpdav/re.log', $data['body'] . PHP_EOL, FILE_APPEND);
             file_put_contents('php://output', $data['body']);
         }
     }
