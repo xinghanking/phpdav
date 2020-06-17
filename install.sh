@@ -133,7 +133,8 @@ echo ";user = $DAV_USER" > $PHPDAV_ROOT/conf/php/davs/user.conf
 echo ";group = $DAV_GROUP" >> $PHPDAV_ROOT/conf/php/davs/user.conf
 ln -s $PHP_FPM_PATH $PHPDAV_ROOT/server/sbin/phpdav_php-fpm
 ln -s $NGINX_PATH $PHPDAV_ROOT/server/sbin/phpdav_nginx
-SERVER_NAMES=`hostname -I`
+SERVER_NAMES=`hostname -d`
+mkdir -p $PHPDAV_ROOT/conf/nginx/davs
 cp $PHPDAV_ROOT/conf/template/nginx/cloud.conf.tpl $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{server_name}#$SERVER_NAMES#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
 sed -i "s#{base_root}#$PHPDAV_ROOT#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
@@ -141,7 +142,7 @@ sed -i "s#cloud_root = null#cloud_root = '$CLOUD_PATH'#g" $PHPDAV_ROOT/conf/conf
 sed -i "s:#!/usr/bin/php:$PHP_PATH:g" $PHPDAV_ROOT/bin/phpdav_admin
 chown -R $DAVUSER:$DAV_GROUP $PHPDAV_ROOT
 echo '安装完成，你可以使用'
-echo "./phpdav start"
+echo "bin/phpdav start"
 echo "命令启动phpdav,也可以把路径$PHPDAV_ROOT/bin/phpdav加到系统环境变量里方便使用"
 echo "启动如遇端口号被占用，可修改$PHPDAV_ROOT/conf/nginx/davs/cloud.conf 第二行listen指令监听的端口号"
 echo "如有其他问题，请联系作者：刘重量；手机：13439694341; 邮箱:13439694341@qq.com"

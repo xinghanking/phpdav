@@ -5,8 +5,8 @@ require_once BASE_ROOT . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . 'c
 $db_conn = 'sqlite';
 $collect_view = 'collect.view.php';
 define('DEF_CLOUD_ROOT', BASE_ROOT . DIRECTORY_SEPARATOR . 'mycloud');
-if (!empty($cloud_root)){
-    define('DAV_ROOT', $cloud_root);
+if (!empty($share_dir)){
+    define('DAV_ROOT', $share_dir);
 }
 define('DB_CONN', $db_conn);
 define('NS_DAV_URI', 'DAV:');
