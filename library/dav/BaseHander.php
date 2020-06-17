@@ -1,10 +1,10 @@
 <?php
 /**
- * Class HttpsDav_BaseHander
+ * Class Dav_BaseHander
  * 根据客户端请求方法调用的handler类的抽象基类
  * @author 刘重量 (13439694341@qq.com)
  */
-abstract class HttpsDav_BaseHander
+abstract class Dav_BaseHander
 {
     protected $arrInput     = [];
     protected $formatStatus = true;
@@ -18,7 +18,7 @@ abstract class HttpsDav_BaseHander
             $this->getArrInput();
         } catch (Exception $e) {
             $this->formatStatus = false;
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
         }
     }
 
@@ -35,9 +35,9 @@ abstract class HttpsDav_BaseHander
             } catch (Exception $e) {
                 $code = $e->getCode();
                 $msg = $e->getMessage();
-                if(!isset(HttpsDav_StatusCode::$message[$code]) || $msg != HttpsDav_StatusCode::$message[$code]){
+                if(!isset(Dav_Status::$Msg[$code]) || $msg != Dav_Status::$Msg[$code]){
                     $response['code'] = 503;
-                    HttpsDav_Log::error($e);
+                    Dav_Log::error($e);
                 } else {
                     $response['code'] = $code;
                 }

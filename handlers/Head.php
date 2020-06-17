@@ -3,7 +3,7 @@
 /**
  * Class Handler_Head
  */
-class Handler_Head extends HttpsDav_BaseHander
+class Handler_Head extends Dav_BaseHander
 {
     const  MAX_LENGTH   = 20971520;
     protected $arrInput = [
@@ -31,11 +31,11 @@ class Handler_Head extends HttpsDav_BaseHander
      */
     public function handler()
     {
-        $objResource = Service_Data_Resource::getInstance();
+        $objResource = Dav_Resource::getInstance();
         if (!isset($objResource->status)) {
             return ['code' => 503];
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
         if ($objResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR) {
@@ -91,13 +91,13 @@ class Handler_Head extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        $this->arrInput['etag'] = HttpsDav_Request::getETagList();
-        $this->arrInput['lastmodified'] = HttpsDav_Request::getLastModified();
-        if (!empty(HttpsDav_Request::$_Headers['Range'])) {
-            $range = explode('=', HttpsDav_Request::$_Headers['Range']);
+        $this->arrInput['etag'] = Dav_Request::getETagList();
+        $this->arrInput['lastmodified'] = Dav_Request::getLastModified();
+        if (!empty(Dav_Request::$_Headers['Range'])) {
+            $range = explode('=', Dav_Request::$_Headers['Range']);
             $unit = strtolower($range[0]);
             if (!isset($this->arrRate[$unit])) {
-                throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                throw new Exception(Dav_Status::$Msg[422], 422);
             }
             if (!empty($rang[1])) {
                 $rangList = explode(',', $rang[1]);
@@ -106,16 +106,16 @@ class Handler_Head extends HttpsDav_BaseHander
                 foreach ($rangList as $rang) {
                     $rang = explode('-', $rang);
                     if (count($rang) > 2) {
-                        throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                        throw new Exception(Dav_Status::$Msg[422], 422);
                     }
                     if (!isset($rang[0]) || !is_numeric($rang[0]) || $rang[0] < 0) {
-                        throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                        throw new Exception(Dav_Status::$Msg[422], 422);
                     }
                     $rang[0] = intval($rang[0]) * $rate;
                     if (isset($rang[1]) && is_numeric($rang[1])) {
                         $rang[1] = intval($rang[1]) * $rate;
                         if ($rang[1] <= $rang[0]) {
-                            throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                            throw new Exception(Dav_Status::$Msg[422], 422);
                         }
                     } else {
                         $rang[1] = -1;

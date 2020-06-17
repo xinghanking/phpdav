@@ -1,38 +1,21 @@
 <?php
 
-class HttpsDav_Server
+class Dav_Server
 {
-    /**
-     * @var array 处理请求路由（左边key对应请求的方法，右边value为对应匹配的文件路径和类名关键词，虽然PHP的类名不区分大小写）
-     */
-    private $_route = [
-        'OPTIONS' => 'Options',
-        'PROPFIND' => 'PropFind',
-        'PROPPATCH' => 'PropPatch',
-        'LOCK' => 'Lock',
-        'UNLOCK' => 'UnLock',
-        'HEAD' => 'Head',
-        'GET' => 'Get',
-        'PUT' => 'Put',
-        'MKCOL' => 'Mkcol',
-        'DELETE' => 'Delete',
-        'COPY' => 'Copy',
-        'MOVE' => 'Move',
-    ];
     private static $_objInstance = null; //保存单一实例
     private static $objPropNs;           //保存属性命名空间实例
 
     /**
      * 构造函数，初始化信息
-     * Httpsdav_Server constructor.
+     * Dav_Server constructor.
      * @param string|null $requestName
      * @throws Exception
      */
     private function __construct()
     {
-        HttpsDav_Request::init();
+        Dav_Request::getHeaders();
         $this->initDavInfo();
-        $requestPath = DAV_ROOT . str_replace('/', DIRECTORY_SEPARATOR, urldecode(REQUEST_URI));
+        $requestPath = DAV_ROOT . str_replace('/', DIRECTORY_SEPARATOR, urldecode(Dav_Request::$_Headers['Uri']));
         $clientCharset = mb_check_encoding($requestPath);
         if (!empty($clientCharset) && $clientCharset != 'UTF-8') {
             $requestPath = mb_convert_encoding($requestPath, 'UTF-8', $clientCharset);
@@ -48,21 +31,21 @@ class HttpsDav_Server
      */
     private function initDavInfo()
     {
-        $mangePath = Dao_DavConf::getDavRoot(HttpsDav_Request::$_Headers['Host']);
+        $mangePath = Dao_DavConf::getDavRoot(Dav_Request::$_Headers['Host']);
         if(false === defined('DAV_ROOT')){
             if (empty($mangePath)) {
-                Dao_DavConf::setDavRoot(HttpsDav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
+                Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
                 $mangePath = DEF_CLOUD_ROOT;
             }
             define('DAV_ROOT', $mangePath);
         }elseif($mangePath != DAV_ROOT) {
-            Dao_DavConf::setDavRoot(HttpsDav_Request::$_Headers['Host'], DAV_ROOT, true);
+            Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DAV_ROOT, true);
         }
     }
 
     /**
-     * 初始化并返回一个httpsdav_Server对象实例，启动HttpsDav服务
-     * @return HttpsDav_Server
+     * 初始化并返回一个Dav_Server对象实例，启动HttpsDav服务
+     * @return Dav_Server
      * @throws Exception
      */
     public static function init()
@@ -76,12 +59,12 @@ class HttpsDav_Server
     public function start()
     {
         spl_autoload_register(function () {
-            include_once BASE_ROOT . DIRECTORY_SEPARATOR . 'handlers' . DIRECTORY_SEPARATOR . $this->_route[REQUEST_METHOD] . '.php';
+            include_once BASE_ROOT . DIRECTORY_SEPARATOR . 'handlers' . DIRECTORY_SEPARATOR . Dav_Request::$_Method[Dav_Request::$_Headers['Method']] . '.php';
         });
-        $className = 'Handler_' . $this->_route[REQUEST_METHOD];
+        $className = 'Handler_' . Dav_Request::$_Method[Dav_Request::$_Headers['Method']];
         $objHandler = new $className();
         $arrResponse = $objHandler->execute();
-        if (isset($arrResponse['code']) && isset(HttpsDav_StatusCode::$message[$arrResponse['code']])) {
+        if (isset($arrResponse['code']) && isset(Dav_Status::$Msg[$arrResponse['code']])) {
             self::response_message($arrResponse);
         }
         fastcgi_finish_request();
@@ -156,7 +139,7 @@ class HttpsDav_Server
     public static function response_message(array $data)
     {
         $headers = (!empty($data['headers']) && is_array($data['headers'])) ? $data['headers'] : [];
-        $headers[] = Httpsdav_StatusCode::$message[$data['code']];
+        $headers[] = Dav_Status::$Msg[$data['code']];
         if (!empty($data['body']) && is_array($data['body'])) {
             $xmlDoc = new DOMDocument('1.0', 'UTF-8');
             $xmlDoc->formatOutput = true;
@@ -168,8 +151,11 @@ class HttpsDav_Server
         }
         foreach ($headers as $header) {
             header($header);
-        }
+        } 
+        file_put_contents('/home/web/phpdav/re.log', print_r($_SERVER, true), FILE_APPEND);
+        file_put_contents('/home/web/phpdav/re.log', print_r($headers, true) .PHP_EOL, FILE_APPEND);
         if (isset($data['body']) && is_string($data['body'])) {
+            file_put_contents('/home/web/phpdav/re.log', $data['body'] . PHP_EOL, FILE_APPEND);
             file_put_contents('php://output', $data['body']);
         }
     }
@@ -212,7 +198,7 @@ class HttpsDav_Server
             for ($i = 0; $i < $data->length; ++$i) {
                 if (!empty($data->item($i)->localName)) {
                     $localName = trim($data->item($i)->localName);
-                    $arrValue[] = [$localName, self::xml_decode($data->item($i)), Httpsdav_Server::getNsIdByUri($data->item($i)->namespaceURI)];
+                    $arrValue[] = [$localName, self::xml_decode($data->item($i)), Dav_Server::getNsIdByUri($data->item($i)->namespaceURI)];
                 }
             }
         }

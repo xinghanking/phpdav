@@ -1,10 +1,10 @@
 <?php
 /**
- * Class Httpsdav_StatusCode
+ * Class Dav_Status
  */
-class HttpsDav_StatusCode
+class Dav_Status
 {
-    public static $message = [
+    public static $Msg = [
         '200' => 'HTTP/1.1 200 OK',
         '201' => 'HTTP/1.1 201 Created',
         '202' => 'HTTP/1.1 202 Accepted',

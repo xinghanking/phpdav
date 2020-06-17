@@ -4,7 +4,7 @@
  * @desc copy method
  * @author 刘重量(13439694341@qq.com)
  */
-class Handler_Copy extends HttpsDav_BaseHander
+class Handler_Copy extends Dav_BaseHander
 {
 
     /**
@@ -14,11 +14,11 @@ class Handler_Copy extends HttpsDav_BaseHander
     {
         $arrResponse = ['code' => 503];
         try {
-            $objResource = Service_Data_Resource::getInstance(REQUEST_RESOURCE);
-            if (empty($objResource) || $objResource->status == Service_Data_Resource::STATUS_FAILED) {
+            $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+            if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
                 return ['code' => 503];
             }
-            if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+            if ($objResource->status == Dav_Resource::STATUS_DELETE) {
                 return ['code' => 404];
             }
             $isLocked = $objResource->checkLocked();
@@ -29,8 +29,8 @@ class Handler_Copy extends HttpsDav_BaseHander
                 return ['code' => 412];
             }
             $baseDestResource = rtrim($this->arrInput['Destination'], '/');
-            $objDestResource = Service_Data_Resource::getInstance($baseDestResource);
-            if ($objDestResource->status == Service_Data_Resource::STATUS_NORMAL) {
+            $objDestResource = Dav_Resource::getInstance($baseDestResource);
+            if ($objDestResource->status == Dav_Resource::STATUS_NORMAL) {
                 if($objResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR || $objDestResource->content_type != Dao_ResourceProp::MIME_TYPE_DIR){
                     return ['code' => 424];
                 }
@@ -49,7 +49,7 @@ class Handler_Copy extends HttpsDav_BaseHander
         } catch (Exception $e) {
             $code = $e->getCode();
             $msg = $e->getMessage();
-            if (!isset(Httpsdav_StatusCode::$message[$code]) || Httpsdav_StatusCode::$message[$code] != $msg) {
+            if (!isset(Dav_Status::$Msg[$code]) || Dav_Status::$Msg[$code] != $msg) {
                 $code = 503;
             }
             $arrResponse = ['code' => $code];
@@ -64,17 +64,17 @@ class Handler_Copy extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        if (empty(Httpsdav_Request::$_Headers['Destination'])) {
-            throw new Exception(Httpsdav_StatusCode::$message['412'], 412);
+        if (empty(Dav_Request::$_Headers['Destination'])) {
+            throw new Exception(Dav_Status::$Msg['412'], 412);
         }
-        $destination = rtrim(Httpsdav_Server::href_decode(Httpsdav_Request::$_Headers['Destination']), '*');
+        $destination = rtrim(Dav_Server::href_decode(Dav_Request::$_Headers['Destination']), '*');
         if (empty($destination)) {
-            throw new Exception(Httpsdav_StatusCode::$message['412'], 412);
+            throw new Exception(Dav_Status::$Msg['412'], 412);
         }
         $arrInput = [
             'Destination' => $destination,
-            'Overwrite'   => empty(Httpsdav_Request::$_Headers['Overwrite']) ? null : Httpsdav_Request::$_Headers['Overwrite'],
-            'Token'       => Httpsdav_Request::getLockToken(),
+            'Overwrite'   => empty(Dav_Request::$_Headers['Overwrite']) ? null : Dav_Request::$_Headers['Overwrite'],
+            'Token'       => Dav_Request::getLockToken(),
         ];
         return $arrInput;
     }

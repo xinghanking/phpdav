@@ -5,7 +5,7 @@
  * @desc 对resources_property表的操作
  * @author 刘重量(13439694341@qq.com)
  */
-class Dao_ResourceProp extends HttpsDav_Db
+class Dao_ResourceProp extends Dav_Db
 {
     const TABLE = 'resource_prop';
 
@@ -46,7 +46,7 @@ class Dao_ResourceProp extends HttpsDav_Db
             $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
             $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
         }else{
-            $arrProperties['getcontentlength'] = HttpsDav_PhyOperation::getDirSize($info['path']);
+            $arrProperties['getcontentlength'] = Dav_PhyOperation::getDirSize($info['path']);
         }
         $info['content_length'] = $arrProperties['getcontentlength'];
         if (isset($info['etag']) && $info['etag'] == $arrProperties['getetag']) {
@@ -94,7 +94,7 @@ class Dao_ResourceProp extends HttpsDav_Db
             }
             $this->commit();
         } catch (Exception $e) {
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             $this->rollback();
             $info = false;
             return false;

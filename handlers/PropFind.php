@@ -4,7 +4,7 @@
  * @desc Handle Request By PropFind Method
  * @author 刘重量(13439694341@qq.com)
  */
-class Handler_PropFind extends HttpsDav_BaseHander
+class Handler_PropFind extends Dav_BaseHander
 {
     const BODY_ROOT = 'propfind';
     protected $arrInput = [
@@ -22,16 +22,16 @@ class Handler_PropFind extends HttpsDav_BaseHander
      */
     public function handler()
     {
-        $objResource = Service_Data_Resource::getInstance();
+        $objResource = Dav_Resource::getInstance();
         if (!isset($objResource->status)) {
             return ['code' => 503];
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
         $multistatus = [];
         foreach ($this->arrInput['resources'] as $resource) {
-            $objResource = Service_Data_Resource::getInstance($resource);
+            $objResource = Dav_Resource::getInstance($resource);
             $responseList = $this->getResponse($objResource, $this->arrInput['depth']);
             $multistatus = array_merge($multistatus, $responseList);
         }
@@ -45,30 +45,30 @@ class Handler_PropFind extends HttpsDav_BaseHander
 
     /**
      * 获取对指定处理资源的执行按照请求的查询条件检索指定范围的属性值集合结果
-     * @param Service_Data_Resource $objResource
+     * @param Dav_Resource $objResource
      * @param int $depth
      * @return array
      * @throws Exception
      */
-    private function getResponse(Service_Data_Resource $objResource, $depth)
+    private function getResponse(Dav_Resource $objResource, $depth)
     {
         $arrResponseList = [];
-        $response = [['href', HttpsDav_Server::href_encode($objResource->path)]];
+        $response = [['href', Dav_Server::href_encode($objResource->path)]];
         if (!isset($objResource->status) || false === $objResource->status) {
-            $response[] = ['propstat', [['status', HttpsDav_StatusCode::$message[503]]]];
+            $response[] = ['propstat', [['status', Dav_Status::$Msg[503]]]];
             $arrResponseList[] = ['response', $response];
             $this->statusList[] = 503;
             return $arrResponseList;
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
-            $response[] = ['propstat', [['status', HttpsDav_StatusCode::$message[404]]]];
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
+            $response[] = ['propstat', [['status', Dav_Status::$Msg[404]]]];
             $arrResponseList[] = ['response', $response];
             $this->statusList[] = 404;
             return $arrResponseList;
         }
         $arrFoundProp = $objResource->getPropFind($this->arrInput['fields'], $this->arrInput['prop']);
         if (empty($arrFoundProp)) {
-            $response[] = ['propstat', [['status', HttpsDav_StatusCode::$message[404]]]];
+            $response[] = ['propstat', [['status', Dav_Status::$Msg[404]]]];
             $arrResponseList[] = ['response', $response];
             $this->statusList[] = 404;
             return $arrResponseList;
@@ -78,7 +78,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
                 $propValue = isset($v['prop_value']) ? $v['prop_value'] : null;
                 $arrFoundProp[$k] = [$v['prop_name'], $propValue, $v['ns_id']];
             }
-            $response[] = ['propstat', [['prop', $arrFoundProp], ['status', HttpsDav_StatusCode::$message[200]]]];
+            $response[] = ['propstat', [['prop', $arrFoundProp], ['status', Dav_Status::$Msg[200]]]];
             $this->statusList[] = 200;
             $arrResponseList[] = ['response', $response];
         } else {
@@ -91,7 +91,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
                 }
             }
             $arrProp = array_values($arrFoundProp);
-            $response[] = ['propstat', [['prop', $arrProp], ['status', HttpsDav_StatusCode::$message[200]]]];
+            $response[] = ['propstat', [['prop', $arrProp], ['status', Dav_Status::$Msg[200]]]];
             $this->statusList[] = 200;
             if (!empty($arrFindProp)) {
                 $arrProp = [];
@@ -101,7 +101,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
                     }
                 }
                 $this->statusList[] = 404;
-                $response[] = ['propstat', [['prop', $arrProp], ['status', HttpsDav_StatusCode::$message[404]]]];
+                $response[] = ['propstat', [['prop', $arrProp], ['status', Dav_Status::$Msg[404]]]];
             }
             $arrResponseList[] = ['response', $response];
         }
@@ -121,11 +121,11 @@ class Handler_PropFind extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        $this->arrInput['depth'] = empty(HttpsDav_Request::$_Headers['Depth']) ? 0 : (is_numeric(HttpsDav_Request::$_Headers['Depth']) ? intval(HttpsDav_Request::$_Headers['Depth']) : -1);
-        if (isset(HttpsDav_Request::$_Headers['Redirect-Status'])) {
-            $this->arrInput['Redirect-Status'] = intval(HttpsDav_Request::$_Headers['Redirect-Status']);
+        $this->arrInput['depth'] = empty(Dav_Request::$_Headers['Depth']) ? 0 : (is_numeric(Dav_Request::$_Headers['Depth']) ? intval(Dav_Request::$_Headers['Depth']) : -1);
+        if (isset(Dav_Request::$_Headers['Redirect-Status'])) {
+            $this->arrInput['Redirect-Status'] = intval(Dav_Request::$_Headers['Redirect-Status']);
         }
-        $requireData = HttpsDav_Request::getDomElement(self::BODY_ROOT);
+        $requireData = Dav_Request::getDomElement(self::BODY_ROOT);
         if (!empty($requireData)) {
             $this->getRequestResourceList();
             $this->getRequestPropList();
@@ -138,14 +138,14 @@ class Handler_PropFind extends HttpsDav_BaseHander
      */
     private function getRequestResourceList()
     {
-        $objTarget = HttpsDav_Request::getObjElements(self::BODY_ROOT . '/target/href');
+        $objTarget = Dav_Request::getObjElements(self::BODY_ROOT . '/target/href');
         if (!empty($objTarget) && $objTarget->length > 0) {
             $arrResource = [];
             for ($i = 0; $i < $objTarget->length; ++$i) {
                 $href = trim($objTarget->item($i)->nodeValue);
                 if (!empty($href)) {
-                    if (0 === strpos($href, REQUEST_URI)) {
-                        $href = substr($href, strlen(REQUEST_URI));
+                    if (0 === strpos($href, Dav_Request::$_Headers['Uri'])) {
+                        $href = substr($href, strlen(Dav_Request::$_Headers['Uri']));
                     }
                     $path = rtrim(REQUEST_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($href, DIRECTORY_SEPARATOR);
                     $arrResource[] = rtrim(DAV_ROOT . urldecode($path), DIRECTORY_SEPARATOR);
@@ -163,7 +163,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
      */
     private function getRequestPropList()
     {
-        $elementProps = HttpsDav_Request::getObjElements(self::BODY_ROOT . '/prop');
+        $elementProps = Dav_Request::getObjElements(self::BODY_ROOT . '/prop');
         if (!empty($elementProps) && $elementProps->length > 0) {
             for ($i = 0; $i < $elementProps->length; ++$i) {
                 $props = $elementProps->item($i);
@@ -171,7 +171,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
                     for ($j = 0; $j < $props->childNodes->length; ++$j) {
                         $prop_name = trim($props->childNodes->item($j)->localName);
                         if (!empty($prop_name)) {
-                            $nsId = HttpsDav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
+                            $nsId = Dav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
                             $this->arrInput['prop'][$nsId][] = $prop_name;
                         }
                     }
@@ -185,7 +185,7 @@ class Handler_PropFind extends HttpsDav_BaseHander
      */
     private function getRequestFields()
     {
-        $nodePropName = HttpsDav_Request::getDomElement(self::BODY_ROOT . '/propname');
+        $nodePropName = Dav_Request::getDomElement(self::BODY_ROOT . '/propname');
         if (!empty($nodePropName)) {
             $this->arrInput['fields'] = ['ns_id', 'prop_name'];
         }

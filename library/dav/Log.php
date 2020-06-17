@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Class HttpsDav_Log
+ * Class Dav_Log
  */
-class HttpsDav_Log {
+class Dav_Log {
     const LOG_DIR = BASE_ROOT . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'phpdav';
     const DEBUG_LOG_DIR  = self::LOG_DIR . DIRECTORY_SEPARATOR .'debug';
     const ACCESS_LOG_DIR = self::LOG_DIR . DIRECTORY_SEPARATOR . 'access';
@@ -13,7 +13,7 @@ class HttpsDav_Log {
      * @param string $message
      */
     public static function debug($message){
-        if(!file_exists(self::DEBUG_LOG_DIR)){
+        if (!file_exists(self::DEBUG_LOG_DIR . DIRECTORY_SEPARATOR)){
             mkdir(self::DEBUG_LOG_DIR);
         }
         $debugLogFile = self::DEBUG_LOG_DIR . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
@@ -21,9 +21,6 @@ class HttpsDav_Log {
     }
 
     public static function access(){
-        if(!file_exists(self::ACCESS_LOG_DIR)){
-            mkdir(self::ACCESS_LOG_DIR);
-        }
         $accessLogFile = self::ACCESS_LOG_DIR . DIRECTORY_SEPARATOR . date('Y-m-d') . '.log';
         $msg = date('Y-m-d H:i:s', time()) . ' ';
         file_put_contents($accessLogFile, $msg, FILE_APPEND);

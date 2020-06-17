@@ -1,11 +1,10 @@
 <?php
-
 /**
  * @name Dao_DavConf
  * @desc 对dav_conf表的操作
  * @author 刘重量(13439694341@qq.com)
  */
-class Dao_DavConf extends HttpsDav_Db
+class Dao_DavConf extends Dav_Db
 {
     const TABLE = 'dav_conf';
 

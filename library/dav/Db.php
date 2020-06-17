@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Class HttpsDav_Db
+ * ClassDav_Db
  */
-abstract class HttpsDav_Db
+abstract class Dav_Db
 {
     protected static $_obj;
     protected static $_db = null;

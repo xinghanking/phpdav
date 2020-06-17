@@ -1,16 +1,16 @@
 <?php
 try {
-    require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'conf/config.ini.php';
-    $objHttpsDavServer = HttpsDav_Server::init();
+    require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'conf/prepend.php';
+    $objDavServer = Dav_Server::init();
     try {
-        $objHttpsDavServer->start();
+        $objDavServer->start();
     } catch (Exception $e) {
-        HttpsDav_Log::error($e);
+        Dav_Log::error($e);
         $code = $e->getCode();
-        if (!isset(HttpsDav_StatusCode::$message[$code])) {
+        if (!isset(Dav_Status::$Msg[$code])) {
             $code = 503;
         }
-        header(HttpsDav_StatusCode::$message[$code]);
+        header(Dav_Status::$Msg[$code]);
     }
 } catch (Exception $e) {
     $msg = $e->getFile() . ':' . $e->getLine() . ';  CODE: ' . $e->getCode() . '; Msg: ' . $e->getMessage() . PHP_EOL . 'Trace: ' . $e->getTraceAsString();

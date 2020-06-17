@@ -5,7 +5,7 @@
  * @desc   Mkcol method
  * @author 刘重量(13439694341@qq.com)
  */
-class Handler_Mkcol extends HttpsDav_BaseHander
+class Handler_Mkcol extends Dav_BaseHander
 {
     /**
      * @return mixed|void

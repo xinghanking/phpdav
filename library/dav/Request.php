@@ -1,8 +1,22 @@
 <?php
 
 
-class HttpsDav_Request
+class Dav_Request
 {
+    public static $_Method = [
+        'OPTIONS'   => 'Options',
+        'PROPFIND'  => 'PropFind',
+        'PROPPATCH' => 'PropPatch',
+        'LOCK'      => 'Lock',
+        'UNLOCK'    => 'UnLock',
+        'HEAD'      => 'Head',
+        'GET'       => 'Get',
+        'PUT'       => 'Put',
+        'MKCOL'     => 'Mkcol',
+        'DELETE'    => 'Delete',
+        'COPY'      => 'Copy',
+        'MOVE'      => 'Move'
+    ];
     public static $_Headers = [
         'Host'                => 'HTTP_HOST',
         'User-Agent'          => 'HTTP_USER_AGENT',
@@ -29,7 +43,10 @@ class HttpsDav_Request
     private static $_objXml;
     private static $_object;
 
-    private function __construct()
+    /**
+     * 初始化这个保存并格式化请求数据存储的对象
+     */
+    public static function getHeaders()
     {
         foreach (self::$_Headers as $field => $vkey) {
             if (isset($_SERVER[$vkey]) && $_SERVER[$vkey] !== '') {
@@ -48,22 +65,12 @@ class HttpsDav_Request
         if ($uri{0} != '/') {
             $uri = '/' . $uri;
         }
-        if(empty(self::$_Headers['Destination']) && !empty($_SERVER['DESTINATION'])){
+        if (empty(self::$_Headers['Destination']) && !empty($_SERVER['DESTINATION'])) {
             self::$_Headers['Destination'] = trim($_SERVER['DESTINATION']);
         }
-        define('REQUEST_METHOD', strtoupper($_SERVER['REQUEST_METHOD']));
-        define('REQUEST_URI',    $uri);
-        define('REQUEST_HREF',   rtrim($uri, '*'));
-    }
-
-    /**
-     * 初始化这个保存并格式化请求数据存储的对象
-     */
-    public static function init()
-    {
-        if (!(self::$_object instanceof self)) {
-            self::$_object = new self();
-        }
+        self::$_Headers['Method'] = strtoupper($_SERVER['REQUEST_METHOD']);
+        self::$_Headers['Uri'] = $uri;
+        self::$_Headers['Href'] = rtrim($uri, '*');
     }
 
     /**
@@ -75,17 +82,17 @@ class HttpsDav_Request
         $arrLockTokenList = [];
         if (isset(self::$_Headers['If'])) {
             preg_match_all('/<(.*)>/i', self::$_Headers['If'], $matches);
-            if(!empty($matches[1])){
+            if (!empty($matches[1])) {
                 $arrLockTokenList = $matches[1];
             }
         }
         if (isset(self::$_Headers['Lock-Token'])) {
             preg_match_all('/<(.*)>/i', self::$_Headers['Lock-Token'], $matches);
-            if(!empty($matches[1])){
+            if (!empty($matches[1])) {
                 $arrLockTokenList = array_merge($arrLockTokenList, $matches[1]);
             }
         }
-        if(isset($_SESSION['LOCK_TOKEN'])){
+        if (isset($_SESSION['LOCK_TOKEN'])) {
             $arrLockTokenList = array_merge($arrLockTokenList, $_SESSION['LOCK_TOKEN']);
         }
         return $arrLockTokenList;
@@ -95,7 +102,8 @@ class HttpsDav_Request
      * 返回客户端发来请求headers中包含的etag信息的数组
      * @return array
      */
-    public static function getETagList(){
+    public static function getETagList()
+    {
         $fieldList = ['If-Range', 'If-Match', 'If-None-Match'];
         $eTagList = [];
         foreach ($fieldList as $field) {
@@ -125,7 +133,7 @@ class HttpsDav_Request
         $fieldList = ['Last-Modified', 'If-Modified-Since', 'If-Unmodified-Since', 'If-Range'];
         $modifiedTimeList = [];
         foreach ($fieldList as $field) {
-            if(isset(self::$_Headers[$field])){
+            if (isset(self::$_Headers[$field])) {
                 $lastModified = strtotime(self::$_Headers[$field]);
                 if ($lastModified > 0) {
                     $modifiedTimeList[] = $lastModified;
@@ -137,7 +145,7 @@ class HttpsDav_Request
 
     /**
      * 获取原始输入数据主体
-     * @param int $start  偏移量
+     * @param int $start 偏移量
      * @param int $length 一次获取的最大内容长度 在php7.3.3版本，length传null在shell下会被当成传0字长不能取到全部字符串
      * @return false|string
      */

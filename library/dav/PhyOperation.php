@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Class HttpsDav_PhyOperation
+ * Class Dav_PhyOperation
  * 对操作系统物理存储的资源做操作
  */
-class HttpsDav_PhyOperation
+class Dav_PhyOperation
 {
 
     /**
@@ -34,7 +34,7 @@ class HttpsDav_PhyOperation
             $res = 0 === $status;
         }
         if (false === $res) {
-            HttpsDav_Log::debug($msg);
+            Dav_Log::debug(is_array($msg) ? print_r($msg, true) : $msg);
         }
         return $res;
     }
@@ -85,7 +85,7 @@ class HttpsDav_PhyOperation
                 $res = 0 === $status;
             }
             if (false === $res) {
-                HttpsDav_Log::error($e);
+                Dav_Log::error($e);
             }
         }
         return $res;
@@ -104,7 +104,7 @@ class HttpsDav_PhyOperation
         if (false == $res && PHP_OS == 'Linux') {
             exec('cp -r ' . $source . ' ' . $dPath, $msg, $status);
             if ($status !== 0) {
-                HttpsDav_Log::debug($msg);
+                Dav_Log::debug($msg);
                 $res = false;
             } else {
                 $res = true;
@@ -162,11 +162,11 @@ class HttpsDav_PhyOperation
         if (is_dir($dest)) {
             rmdir($dest);
         }
-        $res = rename($source, $dest);
+        $res = @rename($source, $dest);
         if (false == $res && PHP_OS == 'Linux') {
             exec('move -f ' . $source . ' ' . $dest, $msg, $status);
             if ($status !== 0) {
-                HttpsDav_Log::debug($msg);
+                Dav_Log::debug(is_array($msg) ? print_r($msg, true) : $msg);
                 $res = false;
             } else {
                 $res = true;

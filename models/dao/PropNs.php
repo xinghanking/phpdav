@@ -4,7 +4,7 @@
  * @desc propNs dao, 可以访问数据库prop_ns表的内容
  * @author 刘重量(13439694341@qq.com)
  */
-class Dao_PropNs extends HttpsDav_Db {
+class Dao_PropNs extends Dav_Db {
     const TABLE = 'prop_ns';
     const LIMIT = 256;
     public static $uriMap = [];
@@ -49,7 +49,7 @@ class Dao_PropNs extends HttpsDav_Db {
                 return $id;
             }
         }
-        $info = ['uri' => $uri, 'user_agent' => Httpsdav_Request::$_Headers['User-Agent']];
+        $info = ['uri' => $uri, 'user_agent' => Dav_Request::$_Headers['User-Agent']];
         try {
             $this->beginTransaction();
             $id = $this->replace($info);
@@ -65,7 +65,7 @@ class Dao_PropNs extends HttpsDav_Db {
             return $id;
         } catch (Exception $e) {
             $this->rollback();
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             throw new Exception($e->getMessage(), $e->getCode());
         }
     }

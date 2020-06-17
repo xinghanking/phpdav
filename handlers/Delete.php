@@ -4,7 +4,7 @@
  * @desc   Delete method
  * @author 刘重量(13439694341@qq.com)
  */
-class Handler_Delete extends HttpsDav_BaseHander {
+class Handler_Delete extends Dav_BaseHander {
 
     protected $arrInput = [
         'Redirect-Status' => 200,
@@ -16,18 +16,18 @@ class Handler_Delete extends HttpsDav_BaseHander {
     protected function handler()
     {
         try {
-            $objResource = Service_Data_Resource::getInstance();
-            if ($objResource->status === Service_Data_Resource::STATUS_DELETE) {
+            $objResource = Dav_Resource::getInstance();
+            if ($objResource->status === Dav_Resource::STATUS_DELETE) {
                 return ['code' => $this->arrInput['Redirect-Status']];
             }
             $res = $objResource->remove();
             return ['code' => ($res ? $this->arrInput['Redirect-Status'] : 503)];
         } catch (Exception $e) {
             $code = $e->getCode();
-            if (!isset(Httpsdav_StatusCode::$message[$code])) {
+            if (!isset(Dav_Status::$Msg[$code])) {
                 $code = 503;
             }
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             return ['code' => $code];
         }
     }
@@ -37,8 +37,8 @@ class Handler_Delete extends HttpsDav_BaseHander {
      */
     protected function getArrInput()
     {
-        if(isset(HttpsDav_Request::$_Headers['Redirect-Status'])){
-            $this->arrInput['Redirect-Status'] = HttpsDav_Request::$_Headers['Redirect-Status'];
+        if(isset(Dav_Request::$_Headers['Redirect-Status'])){
+            $this->arrInput['Redirect-Status'] = Dav_Request::$_Headers['Redirect-Status'];
         }
     }
 }

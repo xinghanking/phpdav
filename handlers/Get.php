@@ -3,7 +3,7 @@
 /**
  * Class Handler_Get
  */
-class Handler_Get extends HttpsDav_BaseHander
+class Handler_Get extends Dav_BaseHander
 {
     const BLOCK_SIZE = MAX_READ_LENGTH; //区间请求，分段传输，大小上限
     protected $arrInput = [
@@ -34,12 +34,12 @@ class Handler_Get extends HttpsDav_BaseHander
      */
     public function handler()
     {
-        $this->objResource = Service_Data_Resource::getInstance();
+        $this->objResource = Dav_Resource::getInstance();
         $objResource = $this->objResource;
         if (!isset($objResource->status)) {
             return ['code' => 503];
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
         if ($objResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR) {
@@ -105,7 +105,7 @@ class Handler_Get extends HttpsDav_BaseHander
                 $response['body'] = $contentData;
                 return $response;
             }
-            $response['headers'][] = HttpsDav_StatusCode::$message[$response['code']];
+            $response['headers'][] = Dav_Status::$Msg[$response['code']];
             foreach ($response['headers'] as $field) {
                 header($field);
             }
@@ -113,7 +113,7 @@ class Handler_Get extends HttpsDav_BaseHander
             return ['code' => 0];
         }
         set_time_limit(0);
-        $response['headers'][] = HttpsDav_StatusCode::$message[206];
+        $response['headers'][] = Dav_Status::$Msg[206];
         $response['headers'][] = 'Content-Type: multipart/byteranges; boundary=SWORD_OF_LZL';
         foreach ($response['headers'] as $field) {
             header($field);
@@ -139,12 +139,12 @@ class Handler_Get extends HttpsDav_BaseHander
 
     /**
      * 输出需要超出预设置的单次限定发送单元大小上限需要分段传输的资源内容区间数据
-     * @param \Service_Data_Resource $objResource
+     * @param \Dav_Resource $objResource
      * @param int $start
      * @param int $end
      * @return bool
      */
-    private function outMaxContent(Service_Data_Resource $objResource, $start = 0, $end = -1)
+    private function outMaxContent(Dav_Resource $objResource, $start = 0, $end = -1)
     {
         while ($start < $end) {
             $length = min(self::BLOCK_SIZE, $end - $start + 1);
@@ -170,14 +170,14 @@ class Handler_Get extends HttpsDav_BaseHander
     protected function getArrInput()
     {
         $this->arrInput = [
-            'etag' => HttpsDav_Request::getETagList(),
-            'lastmodified' => HttpsDav_Request::getLastModified()
+            'etag' => Dav_Request::getETagList(),
+            'lastmodified' => Dav_Request::getLastModified()
         ];
-        if (!empty(HttpsDav_Request::$_Headers['Range'])) {
-            $range = explode('=', HttpsDav_Request::$_Headers['Range']);
+        if (!empty(Dav_Request::$_Headers['Range'])) {
+            $range = explode('=', Dav_Request::$_Headers['Range']);
             $unit = strtolower($range[0]);
             if (!isset($this->arrRate[$unit])) {
-                throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                throw new Exception(Dav_Status::$Msg[422], 422);
             }
             if (!empty($range[1])) {
                 $arrRanges = explode(',', $range[1]);
@@ -186,16 +186,16 @@ class Handler_Get extends HttpsDav_BaseHander
                 foreach ($arrRanges as $strRange) {
                     $range = explode('-', $strRange);
                     if (count($range) > 2) {
-                        throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                        throw new Exception(Dav_Status::$Msg[422], 422);
                     }
                     if (!is_numeric($range[0]) || $range[0] < 0) {
-                        throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                        throw new Exception(Dav_Status::$Msg[422], 422);
                     }
                     $range[0] = intval($range[0]) * $rate;
                     if (isset($range[1]) && is_numeric($range[1])) {
                         $range[1] = intval($range[1]) * $rate;
                         if ($range[1] < $range[0]) {
-                            throw new Exception(Httpsdav_StatusCode::$message[422], 422);
+                            throw new Exception(Dav_Status::$Msg[422], 422);
                         }
                     } else {
                         $range[1] = null;

@@ -3,7 +3,7 @@
  * Class Handler_UnLock
  * 处理客户端调用UNLOCK 方法发来的解锁指定资源的请求
  */
-class Handler_UnLock extends HttpsDav_BaseHander
+class Handler_UnLock extends Dav_BaseHander
 {
     protected $arrInput = [
         'locktoken' => []
@@ -16,15 +16,15 @@ class Handler_UnLock extends HttpsDav_BaseHander
      */
     protected function handler()
     {
-        $objResource = Service_Data_Resource::getInstance(REQUEST_RESOURCE);
-        if (empty($objResource) || $objResource->status == Service_Data_Resource::STATUS_FAILED) {
+        $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+        if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
             return ['code' => 503];
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
         $arrResult = $objResource->unlock($this->arrInput['locktoken']);
-        if (isset(HttpsDav_StatusCode::$message[$arrResult['code']])) {
+        if (isset(Dav_Status::$Msg[$arrResult['code']])) {
             return $arrResult;
         }
         return ['code' => 503];
@@ -36,7 +36,7 @@ class Handler_UnLock extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        $this->arrInput['locktoken'] = HttpsDav_Request::getLockToken();
+        $this->arrInput['locktoken'] = Dav_Request::getLockToken();
         if (empty($this->arrInput['locktoken'])) {
             $this->formatStatus = false;
         }

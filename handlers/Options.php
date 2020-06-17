@@ -2,7 +2,7 @@
 /**
  * Class Handler_Options
  */
-class Handler_Options extends HttpsDav_BaseHander
+class Handler_Options extends Dav_BaseHander
 {
     /**
      * 执行客户端通过OPTIONS方法发来的请求任务并返回数组格式化结果
@@ -30,6 +30,6 @@ class Handler_Options extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        //HttpsDav_Log::debug(json_encode(HttpsDav_Request::$_Headers, JSON_UNESCAPED_UNICODE));
+        //Dav_Log::debug(json_encode(Dav_Request::$_Headers, JSON_UNESCAPED_UNICODE));
     }
 }

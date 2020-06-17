@@ -1,10 +1,10 @@
 <?php
 /**
- * @name Service_Data_Resource
+ * @name Dav_Resource
  * @desc Resource data service, 提供资源基本信息，属性查询的数据接口
  * @author 刘重量(13439694341@qq.com)
  */
-class Service_Data_Resource
+class Dav_Resource
 {
     const BOOL_YES = 1;    // 是
     const BOOL_NOT = 0;    // 否
@@ -35,7 +35,7 @@ class Service_Data_Resource
     private static $arrInstances = [];       // 存储的资源实例集合
 
     /**
-     * Service_Data_Resource constructor.
+     * Dav_Resource constructor.
      * @param array $info
      * @throws Exception
      */
@@ -148,13 +148,13 @@ class Service_Data_Resource
      * @throws \Exception
      */
     public function getCollectView(){
-        $showPath = urldecode(REQUEST_HREF);
-        $href  = REQUEST_HREF;
+        $showPath = urldecode(Dav_Request::$_Headers['Href']);
+        $href  = Dav_Request::$_Headers['Href'];
         $childrenList = $this->getChildren();
         $itemList = [];
         foreach ($childrenList as $item) {
             $itemList[] = [
-                'href'         => HttpsDav_Server::href_encode($item->path),
+                'href'         => Dav_Server::href_encode($item->path),
                 'name'         => basename($item->path),
                 'content_type' => $item->content_type,
                 'size'         => $item->content_length,
@@ -235,7 +235,7 @@ class Service_Data_Resource
                 self::$objDaoDavResource->freeResourcesLock($invalidLockResourceIds);
             }
         } catch (Exception $e) {
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             if (empty($response)) {
                 $response = ['code' => 503, 'path' => $this->path];
             }
@@ -272,12 +272,12 @@ class Service_Data_Resource
         try {
             $res = self::$objDaoDavResource->removePathRecord(REQUEST_PATH);
             if ($res) {
-                $res = HttpsDav_PhyOperation::removePath(REQUEST_PATH);
+                $res = Dav_PhyOperation::removePath(REQUEST_PATH);
             }
             return $res;
         } catch (Exception $e) {
             $log = 'fatal delete a dir resource :' . $this->path . '. File' . $e->getFile() . ':' . $e->getLine() . '; msg:' . $e->getMessage();
-            HttpsDav_Log::debug($log);
+            Dav_Log::debug($log);
             return false;
         }
     }
@@ -375,7 +375,7 @@ class Service_Data_Resource
      */
     public function copy($destination)
     {
-        $res = HttpsDav_PhyOperation::copyResource(REQUEST_PATH, $destination);
+        $res = Dav_PhyOperation::copyResource(REQUEST_PATH, $destination);
         if($res){
             self::$objDaoDavResource->copy(REQUEST_PATH, $destination);
         }
@@ -391,7 +391,7 @@ class Service_Data_Resource
     public function move($destination)
     {
         $objDestResource = self::getInstance($destination);
-        $response = ['code' => $objDestResource->status == Service_Data_Resource::STATUS_DELETE ? 201 : 204];
+        $response = ['code' => $objDestResource->status == Dav_Resource::STATUS_DELETE ? 201 : 204];
         $res = self::$objDaoDavResource->move($this->path, $destination, $this->content_type);
         if ($res) {
             return $response;

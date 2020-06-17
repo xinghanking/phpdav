@@ -5,7 +5,7 @@
  * @desc 对resources_info表的操作
  * @author 刘重量(13439694341@qq.com)
  */
-class Dao_DavResource extends HttpsDav_Db
+class Dao_DavResource extends Dav_Db
 {
     const TYPE_COLLECTION = 1;    //资源类型为一个集合
     const TYPE_STANDALONE = 0;    //资源为单独一个文件
@@ -38,7 +38,7 @@ class Dao_DavResource extends HttpsDav_Db
                         'path'           => $path,
                         'level_no'       => 1,
                         'content_type'   => Dao_ResourceProp::MIME_TYPE_DIR,
-                        'content_length' => HttpsDav_PhyOperation::getDirSize($path) + disk_total_space($path),
+                        'content_length' => Dav_PhyOperation::getDirSize($path) + disk_total_space($path),
                         'etag'           => '',
                         'upper_id'       => 0
                     ];
@@ -53,7 +53,7 @@ class Dao_DavResource extends HttpsDav_Db
             Dao_ResourceProp::getInstance()->upsertBaseProperties($arrInfo);
             return $arrInfo;
         } catch (Exception $e) {
-            HttpsDav_Log::error($e, 'path=' . $path);
+            Dav_Log::error($e, 'path=' . $path);
             return false;
         }
     }
@@ -274,7 +274,7 @@ class Dao_DavResource extends HttpsDav_Db
             return true;
         } catch (Exception $e) {
             $this->rollback();
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             throw new Exception($e->getMessage(), $e->getCode());
         }
     }
@@ -302,7 +302,7 @@ class Dao_DavResource extends HttpsDav_Db
             $this->commit();
         }catch (Exception $e) {
             $this->rollback();
-            HttpsDav_Log::error($e);
+            Dav_Log::error($e);
             return false;
         }
         return true;
@@ -392,13 +392,13 @@ class Dao_DavResource extends HttpsDav_Db
                     $this->update(['path' => $path], ['id=' . $info['id']]);
                 }
             }
-            $res = HttpsDav_PhyOperation::move($sourceResource, $destination);
+            $res = Dav_PhyOperation::move($sourceResource, $destination);
             if ($res) {
                 $this->commit();
                 return true;
             }
         } catch (Exception $e) {
-            HttpsDav_Log::debug($e);
+            Dav_Log::debug(print_r($e, true));
         }
         $this->rollback();
         return false;
