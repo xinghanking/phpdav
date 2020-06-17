@@ -73,6 +73,31 @@ class Dav_Request
         self::$_Headers['Href'] = rtrim($uri, '*');
     }
 
+    public static function init()
+    {
+        self::$_Headers['Href'] = rtrim(self::$_Headers['Uri'], '*');
+        $mangePath = Dao_DavConf::getDavRoot(self::$_Headers['Host']);
+        if (false === defined('DAV_ROOT')) {
+            if (empty($mangePath)) {
+                Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
+                $mangePath = DEF_CLOUD_ROOT;
+            }
+            define('DAV_ROOT', $mangePath);
+        } elseif ($mangePath != DAV_ROOT) {
+            Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DAV_ROOT, true);
+        }
+        if (!file_exists(DAV_ROOT)) {
+            mkdir(DAV_ROOT);
+        }
+        $requestPath = DAV_ROOT . str_replace('/', DIRECTORY_SEPARATOR, urldecode(Dav_Request::$_Headers['Uri']));
+        $clientCharset = mb_check_encoding($requestPath);
+        if (!empty($clientCharset) && $clientCharset != 'UTF-8') {
+            $requestPath = mb_convert_encoding($requestPath, 'UTF-8', $clientCharset);
+        }
+        define('REQUEST_PATH', $requestPath);
+        define('REQUEST_RESOURCE', rtrim(REQUEST_PATH, DIRECTORY_SEPARATOR . '*'));
+    }
+
     /**
      * 获取请求headers中的lock token 信息
      * @return array

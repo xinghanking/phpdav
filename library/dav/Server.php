@@ -14,33 +14,8 @@ class Dav_Server
     private function __construct()
     {
         Dav_Request::getHeaders();
-        $this->initDavInfo();
-        $requestPath = DAV_ROOT . str_replace('/', DIRECTORY_SEPARATOR, urldecode(Dav_Request::$_Headers['Uri']));
-        $clientCharset = mb_check_encoding($requestPath);
-        if (!empty($clientCharset) && $clientCharset != 'UTF-8') {
-            $requestPath = mb_convert_encoding($requestPath, 'UTF-8', $clientCharset);
-        }
-        define('REQUEST_PATH', $requestPath);
-        define('REQUEST_RESOURCE', rtrim(REQUEST_PATH, DIRECTORY_SEPARATOR . '*'));
+        Dav_Request::init();
         self::$objPropNs = Dao_PropNs::getInstance();
-    }
-
-    /**
-     * 初始化httpsdav信息
-     * @throws Exception
-     */
-    private function initDavInfo()
-    {
-        $mangePath = Dao_DavConf::getDavRoot(Dav_Request::$_Headers['Host']);
-        if(false === defined('DAV_ROOT')){
-            if (empty($mangePath)) {
-                Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DEF_CLOUD_ROOT);
-                $mangePath = DEF_CLOUD_ROOT;
-            }
-            define('DAV_ROOT', $mangePath);
-        }elseif($mangePath != DAV_ROOT) {
-            Dao_DavConf::setDavRoot(Dav_Request::$_Headers['Host'], DAV_ROOT, true);
-        }
     }
 
     /**
@@ -147,12 +122,12 @@ class Dav_Server
             $xmlDoc->appendChild($element);
             $data['body'] = trim($xmlDoc->saveXML());
             $headers[] = 'Content-Type: application/xml; charset=UTF-8';
-            $headers[] = 'Content-Length: ' . strlen($data['body']);
+            $headers[] = 'Content-Length: ' . isset($data['body']) ? strlen($data['body']) : 0;
         }
         foreach ($headers as $header) {
             header($header);
         }
-        if (isset($data['body']) && is_string($data['body'])) {
+        if (isset($data['body']) && is_string($data['body']) && strlen($data['body']) > 0) {
             file_put_contents('php://output', $data['body']);
         }
     }

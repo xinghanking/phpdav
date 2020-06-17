@@ -3,7 +3,7 @@
 /**
  * Class Handler_PropPatch
  */
-class Handler_PropPatch extends HttpsDav_BaseHander
+class Handler_PropPatch extends Dav_BaseHander
 {
     const BODY_ROOT   = 'propertyupdate';
     protected $arrInput = [
@@ -20,11 +20,11 @@ class Handler_PropPatch extends HttpsDav_BaseHander
      */
     protected function handler()
     {
-        $objResource = Service_Data_Resource::getInstance(REQUEST_RESOURCE);
-        if (empty($objResource) || $objResource->status == Service_Data_Resource::STATUS_FAILED) {
+        $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+        if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
             return ['code' => 503];
         }
-        if ($objResource->status == Service_Data_Resource::STATUS_DELETE) {
+        if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
         $isLocked = $objResource->checkLocked();
@@ -39,8 +39,8 @@ class Handler_PropPatch extends HttpsDav_BaseHander
                 'body' => [
                     'multistatus',[[
                         'response', [
-                            ['href', REQUEST_URI],
-                            ['propstat', [['prop', $this->arrInput['props']], ['status', Httpsdav_StatusCode::$message[200]]]]
+                            ['href', Dav_Request::$_Headers['Uri']],
+                            ['propstat', [['prop', $this->arrInput['props']], ['status', Dav_Status::$Msg[200]]]]
                         ]
                     ]]
                 ]
@@ -54,8 +54,8 @@ class Handler_PropPatch extends HttpsDav_BaseHander
      */
     protected function getArrInput()
     {
-        $this->arrInput['Lock-Token'] = Httpsdav_Request::getLockToken();
-        $requestData = Httpsdav_Request::getObjElements(self::BODY_ROOT);
+        $this->arrInput['Lock-Token'] = Dav_Request::getLockToken();
+        $requestData = Dav_Request::getObjElements(self::BODY_ROOT);
         if (empty($requestData)) {
             $this->formatStatus = false;
         } else {
@@ -71,7 +71,7 @@ class Handler_PropPatch extends HttpsDav_BaseHander
      * 获取并格式化请求数据中要设置的属性列表的请求项数组
      */
     private function getSetProps(){
-        $objSetProp = Httpsdav_request::getObjElements(self::BODY_ROOT . '/set/prop');
+        $objSetProp = Dav_Request::getObjElements(self::BODY_ROOT . '/set/prop');
         if (!empty($objSetProp) && $objSetProp->length > 0) {
             for ($i = 0; $i < $objSetProp->length; ++$i) {
                 $props = $objSetProp->item($i);
@@ -79,11 +79,11 @@ class Handler_PropPatch extends HttpsDav_BaseHander
                     for ($j = 0; $j < $props->childNodes->length; ++$j) {
                         $prop_name = trim($props->childNodes->item($j)->localName);
                         if (!empty($prop_name)) {
-                            $nsId = Httpsdav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
+                            $nsId = Dav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
                             $this->arrInput['set'][] = [
                                 'ns_id'      => $nsId,
                                 'prop_name'  => $prop_name,
-                                'prop_value' => Httpsdav_Server::xml_decode($props->childNodes->item($j)),
+                                'prop_value' => Dav_Server::xml_decode($props->childNodes->item($j)),
                             ];
                             $this->arrInput['props'][] = [$prop_name, null, $nsId];
                         }
@@ -97,7 +97,7 @@ class Handler_PropPatch extends HttpsDav_BaseHander
      * 获取并数组格式化请求数据中表示要删除的属性项列表
      */
     private function getRemoveProps(){
-        $objRemoveProp = Httpsdav_request::getObjElements(self::BODY_ROOT . '/remove/prop');
+        $objRemoveProp = Dav_Request::getObjElements(self::BODY_ROOT . '/remove/prop');
         if (!empty($objRemoveProp) && $objRemoveProp->length > 0) {
             for ($i = 0; $i < $objRemoveProp->length; ++$i) {
                 $props = $objRemoveProp->item($i);
@@ -105,7 +105,7 @@ class Handler_PropPatch extends HttpsDav_BaseHander
                     for ($j = 0; $j < $props->childNodes->length; ++$j) {
                         $prop_name = trim($props->childNodes->item($j)->localName);
                         if (!empty($prop_name)) {
-                            $nsId = Httpsdav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
+                            $nsId = Dav_Server::getNsIdByUri($props->childNodes->item($j)->namespaceURI);
                             $this->arrInput['remove'][] = [
                                 'ns_id'     => $nsId,
                                 'prop_name' => $prop_name,
