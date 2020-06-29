@@ -83,8 +83,11 @@ class Dav_Resource
      * @return mixed
      * @throws Exception
      */
-    public static function getInstance($resourcePath = REQUEST_RESOURCE)
+    public static function getInstance($resourcePath = null)
     {
+        if (empty($resourcePath)) {
+            $resourcePath = Dav_Request::$_Headers['Resource'];
+        }
         if (empty(self::$arrInstances[$resourcePath]) || self::$arrInstances[$resourcePath] instanceof self) {
             self::$objDaoDavResource = Dao_DavResource::getInstance();
             $info = self::$objDaoDavResource->getResourceConf($resourcePath);
@@ -270,9 +273,9 @@ class Dav_Resource
     public function remove()
     {
         try {
-            $res = self::$objDaoDavResource->removePathRecord(REQUEST_PATH);
+            $res = self::$objDaoDavResource->removePathRecord(Dav_Request::$_Headers['Path']);
             if ($res) {
-                $res = Dav_PhyOperation::removePath(REQUEST_PATH);
+                $res = Dav_PhyOperation::removePath(Dav_Request::$_Headers['Path']);
             }
             return $res;
         } catch (Exception $e) {
@@ -375,9 +378,9 @@ class Dav_Resource
      */
     public function copy($destination)
     {
-        $res = Dav_PhyOperation::copyResource(REQUEST_PATH, $destination);
+        $res = Dav_PhyOperation::copyResource(Dav_Request::$_Headers['Path'], $destination);
         if($res){
-            self::$objDaoDavResource->copy(REQUEST_PATH, $destination);
+            self::$objDaoDavResource->copy(Dav_Request::$_Headers['Path'], $destination);
         }
         return $res;
     }

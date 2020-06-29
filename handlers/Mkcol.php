@@ -12,10 +12,10 @@ class Handler_Mkcol extends Dav_BaseHander
      */
     protected function handler()
     {
-        if (file_exists(REQUEST_RESOURCE)) {
+        if (file_exists(Dav_Request::$_Headers['Resource'])) {
             $arrResponse = ['code' => 409];
         } else {
-            $res = mkdir(REQUEST_RESOURCE, 0700, true);
+            $res = mkdir(Dav_Request::$_Headers['Resource'], 0700, true);
             $arrResponse = ['code' => false === $res ? 403 : 201];
         }
         return $arrResponse;

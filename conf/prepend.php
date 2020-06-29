@@ -1,10 +1,14 @@
 <?php
 session_start();
 define('BASE_ROOT', dirname(__DIR__));
+define('CONF_DIR', BASE_ROOT . DIRECTORY_SEPARATOR . 'conf');
+define('DATABASE_DIR', BASE_ROOT . DIRECTORY_SEPARATOR . 'database');
+define('SQLITE_INIT_FILE', CONF_DIR . DIRECTORY_SEPARATOR . 'db' . DIRECTORY_SEPARATOR . 'phpdav.sql');
+define('SQLITE_DB_FILE', DATABASE_DIR . DIRECTORY_SEPARATOR . 'sqlite' . DIRECTORY_SEPARATOR . 'phpdav.db');
 require_once BASE_ROOT . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . 'config.ini.php';
 $db_conn = 'sqlite';
 $collect_view = 'collect.view.php';
-define('DEF_CLOUD_ROOT', BASE_ROOT . DIRECTORY_SEPARATOR . 'mycloud');
+define('DEF_CLOUD_ROOT', BASE_ROOT . DIRECTORY_SEPARATOR . 'cloud');
 if (!empty($share_dir)){
     define('DAV_ROOT', $share_dir);
 }

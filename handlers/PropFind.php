@@ -8,7 +8,7 @@ class Handler_PropFind extends Dav_BaseHander
 {
     const BODY_ROOT = 'propfind';
     protected $arrInput = [
-        'resources' => [REQUEST_RESOURCE],
+        'resources' => [],
         'fields'    => ['ns_id', 'prop_name', 'prop_value'],
         'prop'      => [],
         'depth'     => 0,
@@ -121,6 +121,7 @@ class Handler_PropFind extends Dav_BaseHander
      */
     protected function getArrInput()
     {
+        $this->arrInput['resources'] = [Dav_Request::$_Headers['Resource']];
         $this->arrInput['depth'] = empty(Dav_Request::$_Headers['Depth']) ? 0 : (is_numeric(Dav_Request::$_Headers['Depth']) ? intval(Dav_Request::$_Headers['Depth']) : -1);
         if (isset(Dav_Request::$_Headers['Redirect-Status'])) {
             $this->arrInput['Redirect-Status'] = intval(Dav_Request::$_Headers['Redirect-Status']);
@@ -147,7 +148,7 @@ class Handler_PropFind extends Dav_BaseHander
                     if (0 === strpos($href, Dav_Request::$_Headers['Uri'])) {
                         $href = substr($href, strlen(Dav_Request::$_Headers['Uri']));
                     }
-                    $path = rtrim(REQUEST_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($href, DIRECTORY_SEPARATOR);
+                    $path = rtrim(Dav_Request::$_Headers['Path'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($href, DIRECTORY_SEPARATOR);
                     $arrResource[] = rtrim(DAV_ROOT . urldecode($path), DIRECTORY_SEPARATOR);
                 }
             }

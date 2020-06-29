@@ -1,0 +1,101 @@
+#!/bin/sh
+
+BASE_ROOT=$(readlink -f `dirname "$0"`/../)
+. $BASE_ROOT/conf/np.conf
+#nginx安装目录
+NGINX_HOME="$BASE_ROOT/np/nginx"
+[ -d $NGINX_HOME ] || mkdir -p $NGINX_HOME
+[ -d $NGINX_HOME/logs ] || mkdir -p $NGINX_HOME/logs
+
+#nginx配置
+NGINX_CONF="$BASE_ROOT/conf/nginx/nginx.conf"
+
+[ -d "$NGINX_HOME/run" ] || mkdir -p "$NGINX_HOME/run"
+
+#nginx程序pid文件
+NGINX_PID="$NGINX_HOME/run/nginx.pid"
+
+#程序名
+PROC_NAME="nginx"
+
+[ ! -x $NGINX_BIN ] && echo "nginx exec file is not set or corrupted" && exit 5
+[ ! -r $NGINX_CONF ] && echo "nginx config file is not set or can not read" && exit 6
+
+NGINX_EXEC="$NGINX_BIN -p $NGINX_HOME -c $NGINX_CONF"
+
+CURRENT_USER=`whoami`
+
+if [[ "$CURRENT_USER" != 'root'  &&  "$CURRENT_USER" != "$DAV_USER" ]]; then
+    NGINX_EXEC="sudo $NGINX_EXEC"
+fi
+
+if [ $CURRENT_USER != $DAV_USER ]; then
+    echo "user $DAV_USER $DAV_GROUP;" > $BASE_ROOT/conf/nginx/user.conf
+else
+    echo '' > $BASE_ROOT/conf/nginx/user.conf
+fi
+echo 'set $phpdav_root "'$BASE_ROOT'";' >  $BASE_ROOT/conf/nginx/phpdav_root.conf
+nx_status(){
+    pid=-1
+    if [[ -r $NGINX_PID ]]; then
+        pid=`cat $NGINX_PID`
+        if [ $(ps -p $pid|wc -l) -le 1 ]; then
+            pid=-1
+        fi
+    fi
+    [ $pid -gt 0 ]
+    return $?
+}
+
+nx_start() {
+    nx_status && echo 'nginx is running.' && exit
+    NOTE_PRE="Starting $PROC_NAME:         "
+    $NGINX_EXEC
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+}
+
+nx_stop() {
+    NOTE_PRE="Stopping $PROC_NAME:         "
+    $NGINX_EXEC -s stop
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+    return $retval
+}
+
+nx_reopen() {
+    NOTE_PRE="Reopening $PROC_NAME:        "
+    $NGINX_EXEC -s reopen
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+    return $retval
+}
+
+nx_reload() {
+    NOTE_PRE="Reloading $PROC_NAME:        "
+    $NGINX_EXEC -s reload
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+    return $retval
+}
+
+case "$1" in
+    start)
+        nx_start
+        ;;
+    stop)
+        nx_status && nx_stop
+        ;;
+    restart)
+        nx_status && nx_stop && sleep 1 && nx_start
+        ;;
+    reopen)
+        nx_status && nx_reopen || nx_start
+        ;;
+    reload)
+        nx_status && nx_reload || nx_start
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|reload}"
+        exit 2
+esac

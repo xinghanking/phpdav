@@ -21,53 +21,44 @@ install_exit() {
 #安装脚本说明
 install_help() {
     echo "安装脚本使用示例："
-    echo './install.sh --nginx-path=/usr/local/nginx/sbin/nginx --php-fpm-path=/usr/local/php/sbin/php-fpm --php-path=/usr/local/php/bin/php  --user-path=phpdav --group-path=phpdav --data-dir-path=/home/phpdav/mycloud'
+    echo './install.sh --nginx-path=/usr/local/nginx/sbin/nginx --php-fpm-path=/usr/local/php/sbin/php-fpm --user=phpdav --group=phpdav --share-dir-path=/home/phpdav/cloud'
     echo '说明：'
-    echo '    --nginx-path    nginx程序路径地址
-    --php-fpm-path    php-fpm程序路径地址
-    --php-path        php路径地址；可不填写，如以后要用到bin目录中php脚本工具，会使用到
-    --user            指定运行nginx和php程序的系统用户
-    --group           指定运行nginx和php程序的系统用户组
-    --data-dir-path   要映射管理的服务器目录'
+    echo '    --nginx-path       nginx程序路径地址
+    --php-fpm-path     php-fpm程序路径地址
+    --user             指定运行nginx和php程序的系统用户
+    --group            指定运行nginx和php程序的系统用户组
+    --share-dir-path   要映射管理的服务器目录'
     exit 0
 }
-PHP_FPM_PATH=
-PHP_PATH=
 NGINX_PATH=
+PHP_FPM_PATH=
 DAV_USER=
 DAV_GROUP=
-CLOUD_PATH="$PHPDAV_ROOT/cloud"
+SHARE_DIR="$PHPDAV_ROOT/cloud"
+
+if [ -z $1 ]; then
+    install_help
+fi
 
 for parm in $*;
 do
     val=${parm#*=}
     case "$parm" in
-        --php-fpm-path=*)   PHP_FPM_PATH="$val" ;;
-        --php-path=*)       PHP_PATH="$val"     ;;
-        --nginx-path=*)     NGINX_PATH="$val"   ;;
-        --user=*)           DAV_USER="$val"     ;;
-        --group=*)          DAV_GROUP="$val"    ;;
-        --data-dir-path=*)  CLOUD_PATH="$val"   ;;
-        *)                  install_help        ;;
+        --php-fpm-path=*)    PHP_FPM_PATH="$val" ;;
+        --nginx-path=*)      NGINX_PATH="$val"   ;;
+        --user=*)            DAV_USER="$val"     ;;
+        --group=*)           DAV_GROUP="$val"    ;;
+        --share-dir-path=*)  SHARE_DIR="$val"    ;;
+        *)                   install_help        ;;
     esac
 done;
 if [ -z $PHP_FPM_PATH ]; then
-    PHP_FPM_PATH=`which php-fpm`
-fi
-if [ -z $PHP_PATH ]; then
-    PHP_PATH=`which php`
+    echo '请指定php-fpm地址'
+    exit
 fi
 if [ -z $NGINX_PATH ]; then
-    NGINX_PATH=`which nginx`
-fi
-if [ -d $PHP_FPM_PATH ]; then
-    PHP_FPM_PATH="$PHP_FPM_PATH/sbin/php-fpm"
-fi
-if [ -d $PHP_PATH ]; then
-    PHP_PATH="$PHP_PATH/bin/php"
-fi
-if [ -d $NGINX_PATH ]; then
-    NGINX_PATH="$NGINX_PATH/sbin/nginx"
+    echo '请指定nginx地址'
+    exit
 fi
 if [ ! -x $PHP_FPM_PATH ]; then
     echo '当前所用登录用户缺少对指定的php-fpm的执行权限，安装退出'
@@ -87,27 +78,13 @@ if [ $? -gt 0 ]; then
     echo '请输入正确的nginx路径地址'
     install_exit
 fi
-n=`$PHP_PATH -v|grep cli|wc -l`
-if [ $n -lt 1 ]; then
-    echo '请输入正确的php解释器路径地址'
-    install_exit
-fi
-if [ ! -d $CLOUD_PATH ]; then
-    mkdir -p $CLOUD_PATH
+if [ ! -d $SHARE_DIR ]; then
+    mkdir -p $SHARE_DIR
 fi
 if [ -z $DAV_USER ]; then
-    DIR_INFO=(`ls -l -d $CLOUD_PATH`)
+    DIR_INFO=(`ls -l -d $SHARE_DIR`)
     DAV_USER=${DIR_INFO[2]}
     DAV_GROUP=${DIR_INFO[3]}
-else
-    if [ $DAV_USER = "root" ]; then
-        echo "请指定非root用户执行"
-        install_exit
-    fi
-fi
-if [ $DAV_USER = "root" ]; then
-    DAV_USER="phpdav"
-    DAV_GROUP="phpdav"
 fi
 if [ -z $DAV_GROUP ]; then
     DAV_GROUP="$DAV_USER"
@@ -115,35 +92,18 @@ fi
 if [ id $DAV_USER >& /dev/null 2>&1 ]; then
     useradd -g $DAV_GROUP -s /sbin/nologin $DAV_USER
 fi
-if [ $CURRENT_USER = "root" ]; then
-    chown -R $DAV_USER:$DAV_GROUP $CLOUD_PATH
-    chmod -R 700 $CLOUD_PATH
-    chown -R $DAV_USER:$DAV_GROUP $PHPDAV_ROOT/interface
-    chmod -R 700 $PHPDAV_ROOT/interface
+if [ $DAV_USER != $CURRENT_USER ]; then
+    sudo chown -R $DAV_USER:$DAV_GROUP $PHPDAV_ROOT
 fi
-chmod -R 700 $PHPDAV_ROOT
-rm -fr $PHPDAV_ROOT/server
-mkdir -p $PHPDAV_ROOT/server
-cp -r conf/template/php $PHPDAV_ROOT/server/php
-mkdir -p $PHPDAV_ROOT/server/nginx/logs
-mkdir -p $PHPDAV_ROOT/server/run
-mkdir -p $PHPDAV_ROOT/server/lock
-mkdir -p $PHPDAV_ROOT/server/sbin
-echo ";user = $DAV_USER" > $PHPDAV_ROOT/conf/php/davs/user.conf
-echo ";group = $DAV_GROUP" >> $PHPDAV_ROOT/conf/php/davs/user.conf
-ln -s $PHP_FPM_PATH $PHPDAV_ROOT/server/sbin/phpdav_php-fpm
-ln -s $NGINX_PATH $PHPDAV_ROOT/server/sbin/phpdav_nginx
-SERVER_NAMES=`hostname -d`
-mkdir -p $PHPDAV_ROOT/conf/nginx/davs
-cp $PHPDAV_ROOT/conf/template/nginx/cloud.conf.tpl $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
-sed -i "s#{server_name}#$SERVER_NAMES#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
-sed -i "s#{base_root}#$PHPDAV_ROOT#g" $PHPDAV_ROOT/conf/nginx/davs/cloud.conf
-sed -i "s#cloud_root = null#cloud_root = '$CLOUD_PATH'#g" $PHPDAV_ROOT/conf/config.ini.php
-sed -i "s:#!/usr/bin/php:$PHP_PATH:g" $PHPDAV_ROOT/bin/phpdav_admin
-chown -R $DAVUSER:$DAV_GROUP $PHPDAV_ROOT
+
+echo 'NGINX_BIN="'$NGINX_PATH'"' > $PHPDAV_ROOT/conf/np.conf
+echo 'PHP_FPM_BIN=”'$PHP_FPM_PATH'"' >> $PHPDAV_ROOT/conf/np.conf
+echo 'DAV_USER="'$DAV_USER'"' >> $PHPDAV_ROOT/conf/np.conf
+echo 'DAV_GROUP="'$DAV_GROUP'"' >> $PHPDAV_ROOT/conf/np.conf
+
 echo '安装完成，你可以使用'
-echo "bin/phpdav start"
-echo "命令启动phpdav,也可以把路径$PHPDAV_ROOT/bin/phpdav加到系统环境变量里方便使用"
-echo "启动如遇端口号被占用，可修改$PHPDAV_ROOT/conf/nginx/davs/cloud.conf 第二行listen指令监听的端口号"
+echo "bin/php-fpm start 命令启动php-fpm, bin/nginx start 启动nginx"
+echo "然后就可以使用phpdav提供的webdav服务了"
+echo "启动如遇端口号被占用，可修改$PHPDAV_ROOT/conf/nginx/nginx.conf 里nginx监听的端口号"
 echo "如有其他问题，请联系作者：刘重量；手机：13439694341; 邮箱:13439694341@qq.com"
 install_exit

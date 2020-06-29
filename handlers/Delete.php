@@ -15,21 +15,12 @@ class Handler_Delete extends Dav_BaseHander {
      */
     protected function handler()
     {
-        try {
-            $objResource = Dav_Resource::getInstance();
-            if ($objResource->status === Dav_Resource::STATUS_DELETE) {
-                return ['code' => $this->arrInput['Redirect-Status']];
-            }
-            $res = $objResource->remove();
-            return ['code' => ($res ? $this->arrInput['Redirect-Status'] : 503)];
-        } catch (Exception $e) {
-            $code = $e->getCode();
-            if (!isset(Dav_Status::$Msg[$code])) {
-                $code = 503;
-            }
-            Dav_Log::error($e);
-            return ['code' => $code];
+        $objResource = Dav_Resource::getInstance();
+        if ($objResource->status === Dav_Resource::STATUS_DELETE) {
+            return ['code' => $this->arrInput['Redirect-Status']];
         }
+        $res = $objResource->remove();
+        return ['code' => ($res ? $this->arrInput['Redirect-Status'] : 503)];
     }
 
     /**

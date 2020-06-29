@@ -11,7 +11,7 @@ class Handler_Move extends Dav_BaseHander
     protected function handler()
     {
         try {
-            $sourceBaseResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+            $sourceBaseResource = Dav_Resource::getInstance(Dav_Request::$_Headers['Resource']);
             if (empty($sourceBaseResource) || $sourceBaseResource->status == Dav_Resource::STATUS_FAILED) {
                 return ['code' => 503];
             }
@@ -30,7 +30,7 @@ class Handler_Move extends Dav_BaseHander
             if ($objDestResource->status == Dav_Resource::STATUS_FAILED) {
                 return ['code' => 503];
             }
-            if (substr(REQUEST_PATH, -1) == '*') {
+            if (substr(Dav_Request::$_Headers['Path'], -1) == '*') {
                 if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type != Dao_ResourceProp::MIME_TYPE_DIR) {
                     return ['code' => 412];
                 }
@@ -48,7 +48,7 @@ class Handler_Move extends Dav_BaseHander
                 return $arrResponse;
             }
             if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR) {
-                $destResource = $destResource . DIRECTORY_SEPARATOR . basename(REQUEST_RESOURCE);
+                $destResource = $destResource . DIRECTORY_SEPARATOR . basename(Dav_Request::$_Headers['Resource']);
             }
             if (false === $this->canMove($sourceBaseResource, $destResource)) {
                 return ['code' => 412];

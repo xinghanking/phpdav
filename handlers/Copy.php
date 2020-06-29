@@ -14,7 +14,7 @@ class Handler_Copy extends Dav_BaseHander
     {
         $arrResponse = ['code' => 503];
         try {
-            $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+            $objResource = Dav_Resource::getInstance(Dav_Request::$_Headers['Resource']);
             if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
                 return ['code' => 503];
             }

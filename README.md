@@ -1,12 +1,12 @@
 # phpdav
 使用php开发实现webdav协议的项目
-php版本至少php5.6以上
+php版本至少php5.4以上
 nginx版本建议nginx1.11.0以上
 
 #配置参考
 
 修改conf/config.ini.php里
-$share_dir = '';
+$share_dir = null;
 为你要映射的目录地址，注意要给你php-fpm的执行用户读写执行权限(rwx)
 
 nginx配置参考

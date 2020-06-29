@@ -94,8 +94,8 @@ class Dav_Request
         if (!empty($clientCharset) && $clientCharset != 'UTF-8') {
             $requestPath = mb_convert_encoding($requestPath, 'UTF-8', $clientCharset);
         }
-        define('REQUEST_PATH', $requestPath);
-        define('REQUEST_RESOURCE', rtrim(REQUEST_PATH, DIRECTORY_SEPARATOR . '*'));
+        self::$_Headers['Path'] = $requestPath;
+        self::$_Headers['Resource'] = rtrim($requestPath, DIRECTORY_SEPARATOR . '*');
     }
 
     /**

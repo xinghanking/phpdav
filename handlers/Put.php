@@ -14,7 +14,7 @@ class Handler_Put extends Dav_BaseHander
      * @throws Exception
      */
     protected function handler(){
-        $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+        $objResource = Dav_Resource::getInstance(Dav_Request::$_Headers['Resource']);
         if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
             return ['code' => 503];
         }
@@ -29,18 +29,18 @@ class Handler_Put extends Dav_BaseHander
                         return ['code' => 416];
                     }
                     if (empty($this->arrInput['Request-Body-File'])) {
-                        $res = file_put_contents(REQUEST_RESOURCE, file_get_contents('php://input'), FILE_APPEND);
+                        $res = file_put_contents(Dav_Request::$_Headers['Resource'], file_get_contents('php://input'), FILE_APPEND);
                     } else {
-                        $res = Dav_PhyOperation::combineFile(REQUEST_RESOURCE, $this->arrInput['Request-Body-File']);
+                        $res = Dav_PhyOperation::combineFile(Dav_Request::$_Headers['Resource'], $this->arrInput['Request-Body-File']);
                     }
                     return ['code' => false === $res ? 503 : 200];
                 }
             }
         }
-        if (empty($this->arrInput['Request-Body-File'])) {
-            $res = file_put_contents(REQUEST_RESOURCE, file_get_contents('php://input'));
+        if (empty($this->arrInput['Request-Body-File']) || $this->arrInput['Content-Length'] <= MAX_READ_LENGTH) {
+            $res = file_put_contents(Dav_Request::$_Headers['Resource'], file_get_contents('php://input'));
         } else {
-            $res = Dav_PhyOperation::move($this->arrInput['Request-Body-File'], REQUEST_RESOURCE);
+            $res = Dav_PhyOperation::move($this->arrInput['Request-Body-File'], Dav_Request::$_Headers['Resource']);
         }
         if (false === $res) {
             return ['code' => 503];

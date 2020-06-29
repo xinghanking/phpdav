@@ -5,8 +5,6 @@
  */
 class Db_Sqlite_Conn
 {
-    const DB_PATH = __DIR__ . DIRECTORY_SEPARATOR . 'httpsdav.db';
-
     protected static $_obj;
     protected static $_db = null;
     protected $_tbl;
@@ -17,13 +15,15 @@ class Db_Sqlite_Conn
     protected function __construct()
     {
         if (!(self::$_db instanceof SQLite3)) {
-            self::$_db = new SQLite3(self::DB_PATH);
-            $initSqliteDbFile = __DIR__ . DIRECTORY_SEPARATOR . 'httpsdav.sql';
-            if (is_file($initSqliteDbFile)) {
-                $sql = file_get_contents($initSqliteDbFile);
+            if (file_exists(SQLITE_DB_FILE)) {
+                self::$_db = new SQLite3(SQLITE_DB_FILE);
+            }
+            else {
+                self::$_db = new SQLite3(SQLITE_DB_FILE);
+                $sql = file_get_contents(SQLITE_INIT_FILE);
                 self::$_db->exec($sql);
             }
-            self::$_db->busyTimeout(1000);
+            self::$_db->busyTimeout(3000);
         }
     }
 

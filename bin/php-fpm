@@ -1,0 +1,185 @@
+#!/bin/sh
+#php-fpm 启动脚本
+
+set -e
+set -E
+trap 'echo "Fail unexpectedly on ${BASH_SOURCE[0]}:$LINENO!" >&2' ERR
+
+BASE_ROOT=$(readlink -f `dirname "$0"`/../)
+. $BASE_ROOT/conf/np.conf
+
+CURRENT_USER=`whoami`
+
+if [ -z $DAV_USER ]; then
+    DAV_USER=$CURRENT_USER
+fi
+
+if [ "$DAV_USER" != "$CURRENT_USER" ]; then
+    if [ -z $DAV_USER ]; then
+        su -c "$0 $*" -s "/bin/sh" "$DAV_USER"
+    else
+        su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_USER"
+    fi
+    exit
+fi
+
+PHP_HOME="$BASE_ROOT/np/php"
+
+if [ ! -d $PHP_HOME ]; then
+    mkdir -p $PHP_HOME
+fi
+
+PHP_FPM_LIB_DIR="$PHP_HOME/var/lib"
+
+if [ ! -d $PHP_FPM_LIB_DIR ]; then
+    mkdir -p $PHP_FPM_LIB_DIR
+fi
+
+PHP_FPM_RUN_DIR="$PHP_HOME/var/run"
+
+if [ ! -d $PHP_FPM_RUN_DIR ]; then
+    mkdir -p $PHP_FPM_RUN_DIR
+fi
+
+PHP_FPM_LOG_DIR="$PHP_HOME/logs"
+
+if [ ! -d $PHP_FPM_LOG_DIR ]; then
+    mkdir -p $PHP_FPM_LOG_DIR
+fi
+
+PHP_FPM_CONF="$BASE_ROOT/conf/php/php-fpm.conf"
+
+PHP_FPM_PID="$PHP_HOME/var/run/php-fpm.pid"
+
+php_opts="--prefix $PHP_HOME --fpm-config $PHP_FPM_CONF --pid $PHP_FPM_PID"
+
+wait_for_pid () {
+    try=0
+    while test $try -lt 35 ; do
+        case "$1" in
+        'created')
+            if [ -f "$2" ] ; then
+                try=''
+                break
+            fi
+            ;;
+
+        'removed')
+            if [ ! -f "$2" ] ; then
+                try=''
+                break
+            fi
+            ;;
+        esac
+
+        echo -n .
+        try=`expr $try + 1`
+        sleep 1
+        done
+}
+
+case "$1" in
+    start)
+        echo -n "Starting php-fpm    "
+
+        $PHP_FPM_BIN --daemonize $php_opts
+
+        if [ "$?" != 0 ] ; then
+            echo -e "\033[31m failed \033[0m"
+            exit 1
+        fi
+
+        wait_for_pid created $PHP_FPM_PID
+
+        if [ -n "$try" ] ; then
+            echo -e "\033[31m failed \033[0m"
+            exit 1
+        else
+            echo -e "\033[32m done \033[0m"
+            exit 0
+        fi
+    ;;
+
+    stop)
+        echo -n "Gracefully shutting down php-fpm    "
+
+        if [ ! -r $PHP_FPM_PID ] ; then
+            echo "warning, no pid file found - php-fpm is not running ?"
+            exit 1
+        fi
+
+        kill -QUIT `cat $PHP_FPM_PID`
+
+        wait_for_pid removed $PHP_FPM_PID
+
+        if [ -n "$try" ] ; then
+            echo -e "\033[31m failed \033[0m. Use force-quit"
+            exit 1
+        else
+            echo -e "\033[32m done \033[0m"
+        fi
+    ;;
+
+    status)
+        if [ ! -r $PHP_FPM_PID ] ; then
+            echo "php-fpm is stopped"
+            exit 0
+        fi
+
+        PID=`cat $PHP_FPM_PID`
+        if ps -p $PID | grep -q $PID; then
+            echo "php-fpm (pid $PID) is running..."
+        else
+            echo "php-fpm dead but pid file exists"
+        fi
+    ;;
+
+    force-quit)
+        echo -n "Terminating php-fpm    "
+
+        if [ ! -r $PHP_FPM_PID ] ; then
+            echo "warning, no pid file found - php-fpm is not running ?"
+            exit 1
+        fi
+
+        kill -TERM `cat $PHP_FPM_PID`
+
+        wait_for_pid removed $PHP_FPM_PID
+
+        if [ -n "$try" ] ; then
+            echo -e "\033[31m failed \033[0m"
+            exit 1
+        else
+            echo -e "\033[32m done \033[0m"
+        fi
+    ;;
+
+    restart)
+        $0 stop
+        $0 start
+    ;;
+
+    reload)
+
+        echo -n "Reload service php-fpm    "
+
+        if [ ! -r $PHP_FPM_PID ] ; then
+            echo "warning, no pid file found - php-fpm is not running ?"
+            exit 1
+        fi
+
+        kill -USR2 `cat $PHP_FPM_PID`
+
+        echo -e " \033[32m done \033[0m "
+    ;;
+
+    configtest)
+        $PHP_FPM_BIN -t
+    ;;
+
+    *)
+        echo "Usage: $0 {start|stop|force-quit|restart|reload|status|configtest}"
+        exit 1
+    ;;
+
+esac

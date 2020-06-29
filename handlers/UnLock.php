@@ -16,7 +16,7 @@ class Handler_UnLock extends Dav_BaseHander
      */
     protected function handler()
     {
-        $objResource = Dav_Resource::getInstance(REQUEST_RESOURCE);
+        $objResource = Dav_Resource::getInstance(Dav_Request::$_Headers['Resource']);
         if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
             return ['code' => 503];
         }

@@ -1,3 +1,4 @@
+
 types {
     text/html                                        html htm shtml;
     text/css                                         css;
@@ -23,7 +24,9 @@ types {
     image/x-jng                                      jng;
     image/x-ms-bmp                                   bmp;
 
-    application/font-woff                            woff;
+    font/woff                                        woff;
+    font/woff2                                       woff2;
+
     application/java-archive                         jar war ear;
     application/json                                 json;
     application/mac-binhex40                         hqx;
@@ -41,9 +44,12 @@ types {
     application/vnd.oasis.opendocument.presentation  odp;
     application/vnd.oasis.opendocument.spreadsheet   ods;
     application/vnd.oasis.opendocument.text          odt;
-    application/vnd.openxmlformats-officedocument.presentationml.presentation    pptx;
-    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet            xlsx;
-    application/vnd.openxmlformats-officedocument.wordprocessingml.document      docx;
+    application/vnd.openxmlformats-officedocument.presentationml.presentation
+                                                     pptx;
+    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+                                                     xlsx;
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document
+                                                     docx;
     application/vnd.wap.wmlc                         wmlc;
     application/x-7z-compressed                      7z;
     application/x-cocoa                              cco;
