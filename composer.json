@@ -1,12 +1,14 @@
 {
-  "name": "xinghanking/phpdav",
+  "name": "liuzhongliang/phpdav",
   "description": "create webdav site",
-  "minimum-stability": "dev",
+  "keywords": ["phpdav", "webdav"],
+  "minimum-stability": "stable",
   "license": "MPL-2.0",
   "authors": [
     {
       "name": "刘重量",
-      "email": "13439694341@qq.com"
+      "email": "13439694341@qq.com",
+      "homepage": "https://zhuanlan.zhihu.com/c_1108765551631093760"
     }
   ],
   "require": {
