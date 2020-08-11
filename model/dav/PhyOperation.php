@@ -71,8 +71,8 @@ class Dav_PhyOperation
                 }
                 return true;
             }
-            if (!file_exists($path)){
-               return true;
+            if (!file_exists($path)) {
+                return true;
             }
             if (is_dir($path)) {
                 $childrenResources = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*';

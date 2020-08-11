@@ -23,7 +23,6 @@ class Dao_DavConf extends Dav_Db
      */
     public static function setDavRoot($http_host, $path, $reset = false)
     {
-
         $resourceInfo = Dao_DavResource::getInstance()->getResourceConf($path);
         if (empty($resourceInfo['id'])) {
             throw new Exception('fatal error', 0);

@@ -1,4 +1,5 @@
 <?php
+
 session_start();
 $db_conn = 'sqlite';
 $collect_view = 'collect.view.php';
@@ -27,31 +28,35 @@ define('NS_DAV_URI', 'DAV:');
 define('NS_DAV_ID', 0);
 define('TEMPLATE_COLLECT_VIEW', BASE_ROOT . DIRECTORY_SEPARATOR . 'template' . DIRECTORY_SEPARATOR . $collect_view);
 define('MAX_READ_LENGTH', 8388608);
-spl_autoload_register(function ($class) {
-    if (substr($class, 0, 7) == 'Method_') {
-        $fileName = BASE_ROOT . DIRECTORY_SEPARATOR . 'method' . DIRECTORY_SEPARATOR . substr($class, 7) . '.php';
-        if (file_exists($fileName)) {
-            include_once $fileName;
-            return true;
-        } else {
-            return false;
+spl_autoload_register(
+    function ($class) {
+        if (substr($class, 0, 7) == 'Method_') {
+            $fileName = BASE_ROOT . DIRECTORY_SEPARATOR . 'method' . DIRECTORY_SEPARATOR . substr($class, 7) . '.php';
+            if (file_exists($fileName)) {
+                include_once $fileName;
+                return true;
+            } else {
+                return false;
+            }
         }
-    }
-    $root = BASE_ROOT . DIRECTORY_SEPARATOR . 'model' . DIRECTORY_SEPARATOR;
-    $classFile = $root . $class . '.php';
-    if (is_file($classFile)) {
-        include_once $classFile;
-        return true;
-    } else {
-        $pathInfo = str_replace('_', DIRECTORY_SEPARATOR, $class) . '.php';
-        $classFile = $root . $pathInfo;
-        if (false === is_file($classFile)) {
-            $classFile = $root . strtolower(dirname($pathInfo)) . DIRECTORY_SEPARATOR . basename($pathInfo);
-        }
+        $root = BASE_ROOT . DIRECTORY_SEPARATOR . 'model' . DIRECTORY_SEPARATOR;
+        $classFile = $root . $class . '.php';
         if (is_file($classFile)) {
             include_once $classFile;
             return true;
+        } else {
+            $pathInfo = str_replace('_', DIRECTORY_SEPARATOR, $class) . '.php';
+            $classFile = $root . $pathInfo;
+            if (false === is_file($classFile)) {
+                $classFile = $root . strtolower(dirname($pathInfo)) . DIRECTORY_SEPARATOR . basename($pathInfo);
+            }
+            if (is_file($classFile)) {
+                include_once $classFile;
+                return true;
+            }
         }
-    }
-    return false;
-}, true, true);
+        return false;
+    },
+    true,
+    true
+);

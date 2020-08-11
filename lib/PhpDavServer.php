@@ -6,11 +6,13 @@ $listen_socket = 'tcp://0.0.0.0:' . $listen_port;
 $opts = ['http' => ['Server' => 'phpdav']];
 if ($is_ssl && file_exists($ssl_info['local_cert'])) {
     $listen_socket = 'ssl://0.0.0.0:' . $listen_port;
-    $opts = ['ssl' => [
-        'verify_peer'       => false,
-        'verify_peer_name'  => false,
-        'local_cert'        => $ssl_info['local_cert'],
-    ]];
+    $opts = [
+        'ssl' => [
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'local_cert' => $ssl_info['local_cert'],
+        ]
+    ];
     if (!empty($ssl_info['local_pk'])) {
         $opts['ssl']['local_pk'] = $ssl_info['local_pk'];
     }
@@ -24,6 +26,7 @@ if ($is_ssl && file_exists($ssl_info['local_cert'])) {
 $_SERVER['DAV']['socket'] = $listen_socket;
 $_SERVER['DAV']['context'] = stream_context_create($opts);
 define('PROCESS_NUM', $process_num);
+
 class PhpDavServer
 {
     private $sock = null;
@@ -36,7 +39,7 @@ class PhpDavServer
      */
     private function __construct()
     {
-        $this->sock = @stream_socket_server($_SERVER['DAV']['socket'], $error_no, $error_msg, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
+        $this->sock = @stream_socket_server($_SERVER['DAV']['socket'],$error_no,$error_msg,STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
         $process_num = intval(PROCESS_NUM);
         if (!function_exists('pcntl_fork')) {
             $process_num = 0;

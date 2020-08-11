@@ -1,0 +1,15 @@
+{
+  "name": "liuzhongliang/phpdav",
+  "description": "create webdav site",
+  "minimum-stability": "stable",
+  "license": "MPL",
+  "authors": [
+    {
+      "name": "刘重量",
+      "email": "13439694341@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.16"
+  }
+}
