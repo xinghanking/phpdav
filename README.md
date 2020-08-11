@@ -1,5 +1,9 @@
 # phpdav
 使用php开发实现webdav协议的项目
+
+#更新说明
+phpdav2.0可不依赖nginx
+
 php版本至少php5.4以上
 以下非必须：
 nginx版本建议nginx1.11.0以上
