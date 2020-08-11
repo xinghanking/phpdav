@@ -1,32 +1,16 @@
 # phpdav
 使用php开发实现webdav协议的项目
 php版本至少php5.4以上
+以下非必须：
 nginx版本建议nginx1.11.0以上
 
 #配置参考
-
-修改conf/config.ini.php里
-$share_dir = null;
-为你要映射的目录地址，注意要给你php-fpm的执行用户读写执行权限(rwx)
-
-nginx配置参考
-    
-
-    access_log                    /home/phpdav/phpdav/logs/nginx/access.log  main;
-    charset                       utf-8;
-    sendfile                      on;
-    tcp_nodelay                   on;
-    client_max_body_size          0;
-    client_body_in_file_only      clean;
-    client_body_in_single_buffer  on;
-    location / {
-        root                          /home/phpdav/phpdav/interface;
-        rewrite                       .*  /index.php break;
-        fastcgi_pass                  unix:/home/phpdav/phpdav/server/run/php-cgi.sock;
-        include                       fastcgi.conf;
-        fastcgi_param  REQUEST_ID         $request_id;
-        fastcgi_param  REQUEST_BODY_FILE  $request_body_file;
-        fastcgi_param  SERVER_SOFTWARE    phpdav-1.0;
-    }
-
-其中root配置项指向的代码文件目录中的interface目录
+本项目可不用nginx, 使用方法：
+1. 下载后，直接在程序安装目录中执行
+    bin/phpdav start
+    即可使用phpdav建立一个webdav站点
+2. 使用nginx、php-fpm按照conf/np.conf里的提示，设置nginx、php-fpm执行程序的地址
+    bin/php-fpm start
+    bin/nginx start
+    同样可以建立一个webdav站点
+3. 设置不同的访问主机名（域名、IP）地址映射各自的服务器目录地址，可按照config.ini.php里的提示修改，注意要给你php的执行用户读写执行权限(rwx)

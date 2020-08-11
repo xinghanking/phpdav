@@ -1,11 +1,18 @@
 #!/bin/sh
 
+DAV_USER="web"
+DAV_GROUP="web"
+
+#nginx程序地址
+#NGINX_BIN="/home/web/np/nginx/sbin/nginx"
+
 BASE_ROOT=$(readlink -f `dirname "$0"`/../)
 . $BASE_ROOT/conf/np.conf
 #nginx安装目录
 NGINX_HOME="$BASE_ROOT/np/nginx"
 [ -d $NGINX_HOME ] || mkdir -p $NGINX_HOME
 [ -d $NGINX_HOME/logs ] || mkdir -p $NGINX_HOME/logs
+chown -R $DAV_USER:$DAV_GROUP $BASE_ROOT/np
 
 #nginx配置
 NGINX_CONF="$BASE_ROOT/conf/nginx/nginx.conf"

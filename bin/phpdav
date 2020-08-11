@@ -1,0 +1,64 @@
+#!/bin/sh
+
+
+#php解释器地址
+PHP_BIN="/usr/bin/php"
+DAV_USER=
+DAV_GROUP=
+
+BASE_ROOT=$(readlink -f `dirname "$0"`/../)
+
+
+OWNER=`ls -ld $BASE_ROOT|awk '{print $3}'`
+OWNGROUP=`ls -ld $BASE_ROOT|awk '{print $4}'`
+
+[ -z "$DAV_USER" ] && DAV_USER=$OWNER
+[ -z "$DAV_GROUP" ] && DAV_GROUP=$OWNGROUP
+
+CURRENT_USER=`whoami`
+if [ "$DAV_USER" != "$CURRENT_USER" ]; then
+    su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
+    exit
+fi 
+
+PHPDAV_EXEC="$BASE_ROOT/lib/PhpDavServer.php"
+
+pd_status(){
+    process_num=`ps -aux|grep "php $PHPDAV_EXEC"|grep -v 'grep'|wc -l`
+    [ $process_num -gt 0 ]
+    return $?
+}
+
+pd_start() {
+    pd_status && echo 'phpdav is running.' && exit
+    NOTE_PRE="Starting phpdav:         "
+    nohup $PHP_BIN $PHPDAV_EXEC >/dev/null 2>&1 &
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+}
+
+pd_stop() {
+    pd_status || echo  'phpdav is not running or had stopped.'
+    NOTE_PRE="Stopping phpdav:         "
+    kill -9 `ps -aux|grep "php $PHPDAV_EXEC"|grep -v 'grep'|awk '{print $2}'`
+    retval=$?
+    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]"  && rm -fr $PHPDAV_PID_FILE || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+    return $retval
+}
+
+
+case "$1" in
+    start)
+        pd_start
+        ;;
+    stop)
+        pd_stop
+        ;;
+    restart)
+        pd_stop && sleep 1
+        pd_start
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart}"
+        exit 2
+esac

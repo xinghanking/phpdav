@@ -15,10 +15,10 @@ if [ -z $DAV_USER ]; then
 fi
 
 if [ "$DAV_USER" != "$CURRENT_USER" ]; then
-    if [ -z $DAV_USER ]; then
+    if [ -z $DAV_GROUP ]; then
         su -c "$0 $*" -s "/bin/sh" "$DAV_USER"
     else
-        su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_USER"
+        su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
     fi
     exit
 fi
