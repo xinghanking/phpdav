@@ -2,7 +2,6 @@
   "name": "liuzhongliang/phpdav",
   "description": "Create a WebDAV site for managing server files",
   "keywords": ["phpdav", "webdav"],
-  "minimum-stability": "dev",
   "license": "MPL-2.0",
   "type": "project",
   "authors": [
