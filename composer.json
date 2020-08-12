@@ -1,9 +1,13 @@
 {
   "name": "liuzhongliang/phpdav",
   "description": "create webdav site",
-  "keywords": ["phpdav", "webdav"],
+  "keywords": [
+    "phpdav",
+    "webdav"
+  ],
   "minimum-stability": "stable",
   "license": "MPL-2.0",
+  "type": "project",
   "authors": [
     {
       "name": "刘重量",
@@ -12,6 +16,11 @@
     }
   ],
   "require": {
-    "php": ">=5.4.16"
+    "php": ">=5.4.16",
+    "ext-pcre": "*",
+    "ext-mbstring": "*",
+    "ext-libxml": "*",
+    "ext-json": "*",
+    "ext-sqlite3": "*"
   }
 }
