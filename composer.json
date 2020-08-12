@@ -1,8 +1,8 @@
 {
   "name": "liuzhongliang/phpdav",
-  "description": "Create a WEBDav site for managing server files",
+  "description": "Create a WebDAV site for managing server files",
   "keywords": ["phpdav", "webdav"],
-  "minimum-stability": "stable",
+  "minimum-stability": "dev",
   "license": "MPL-2.0",
   "type": "project",
   "authors": [
@@ -17,6 +17,7 @@
     "ext-hash": "*",
     "ext-pcre": "*",
     "ext-mbstring": "*",
+    "ext-xml": "*",
     "ext-libxml": "*",
     "ext-json": "*",
     "ext-sqlite3": "*"
