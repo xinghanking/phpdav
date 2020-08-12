@@ -435,13 +435,13 @@ class Dav_Utils
 
     public static function auth()
     {
-        if (empty($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['is_auth'])) {
+        if (empty($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['is_auth']) || !empty($_SESSION['auth'])) {
             return true;
         }
 
         if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
             if (isset($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$_SERVER['PHP_AUTH_USER']]) && $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$_SERVER['PHP_AUTH_USER']] == $_SERVER['PHP_AUTH_PW']) {
-                //self::keepLogin();
+                $_SESSION['auth'] = true;
                 return true;
             }
             throw new Exception(Dav_Status::$Msg['403'], 403);
@@ -452,33 +452,12 @@ class Dav_Utils
             $authInfo = base64_decode(trim($authInfo[1]));
             $authInfo = explode(':', $authInfo);
             if (isset($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$authInfo[0]]) && $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$authInfo[0]] == $authInfo[1]) {
-                self::keepLogin();
+                $_SESSION['auth'] = true;
                 return true;
             }
             throw new Exception(Dav_Status::$Msg['403'], 403);
         }
-        if (isset($_COOKIE['authorization']) && isset($_SESSION['auth'][$_COOKIE['authorization']])) {
-            if (time() - $_SESSION['auth'][$_COOKIE['authorization']] < 86400) {
-                unset($_SESSION['auth'][$_COOKIE['authorization']]);
-                $_SESSION['auth'][$_COOKIE['authorization']] = time();
-                return true;
-            }
-            if (count($_SESSION['auth']) > 10240) {
-                array_shift($_SESSION[$_SESSION['auth']]);
-            }
-        }
-        file_put_contents('/home/web/phpdav/re.log', print_r($_REQUEST['HEADERS'], true), FILE_APPEND);
         throw new Exception(Dav_Status::$Msg['401'], 401);
-    }
-
-    /**
-     * 使用cookie保持登录
-     */
-    private static function keepLogin()
-    {
-        $strAuth = md5(session_id() . time());
-        setcookie('authorization', $strAuth);
-        $_SESSION['auth'][$strAuth] = time();
     }
 
     /**

@@ -1,5 +1,5 @@
 <?php
-
+session_start();
 try {
     require_once dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'auto_prepend.php';
     try {
@@ -18,8 +18,7 @@ try {
         }
     }
 } catch (Exception $e) {
-    $msg = $e->getFile() . ':' . $e->getLine() . ';  CODE: ' . $e->getCode() . '; Msg: ' . $e->getMessage(
-        ) . PHP_EOL . 'Trace: ' . $e->getTraceAsString();
+    $msg = $e->getFile() . ':' . $e->getLine() . ';  CODE: ' . $e->getCode() . '; Msg: ' . $e->getMessage() . PHP_EOL . 'Trace: ' . $e->getTraceAsString();
     error_log($msg);
     header('HTTP/1.1 503 Service Unavailable');
 }

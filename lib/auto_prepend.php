@@ -1,6 +1,4 @@
 <?php
-
-session_start();
 $db_conn = 'sqlite';
 $collect_view = 'collect.view.php';
 define('BASE_ROOT', dirname(__DIR__));
@@ -8,7 +6,7 @@ require_once BASE_ROOT . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . 'c
 if (empty($_SERVER['LANG'])) {
     $_SERVER['LANG'] = getenv('LANG');
     if (empty($_SERVER['LANG'])) {
-        $_SERVER['LANG'] = empty($server_lang) ? exec('echo $LANG') : $server_lang;
+        $_SERVER['LANG'] = empty($server_lang) ? @exec('echo $LANG') : $server_lang;
     }
 }
 if (empty($_SERVER['LANG'])) {

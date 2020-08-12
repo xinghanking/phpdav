@@ -1,6 +1,5 @@
 <?php
 $listen_port = 8150; //绑定的端口号
-$server_lang = null; //服务器系统字符编码，可在命令行下执行 echo $LANG 获取
 $process_num = 5;    //开启进程数
 $is_ssl = false;     //是否开启ssl，true:开启；false;不开启，若开启，webdav的访问地址将以https开始
 /*

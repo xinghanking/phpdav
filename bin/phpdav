@@ -30,7 +30,7 @@ pd_status(){
 }
 
 pd_start() {
-    pd_status && echo 'phpdav is running.' && exit
+    pd_status && echo 'phpdav is running.' && return 0
     NOTE_PRE="Starting phpdav:         "
     nohup $PHP_BIN $PHPDAV_EXEC >/dev/null 2>&1 &
     retval=$?
@@ -38,7 +38,8 @@ pd_start() {
 }
 
 pd_stop() {
-    pd_status || echo  'phpdav is not running or had stopped.'
+    pd_status 
+    [ $? -gt 0 ] && echo  'phpdav is not running or had stopped.' && return 0
     NOTE_PRE="Stopping phpdav:         "
     kill -9 `ps -aux|grep "php $PHPDAV_EXEC"|grep -v 'grep'|awk '{print $2}'`
     retval=$?

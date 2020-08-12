@@ -8,8 +8,7 @@ if ($is_ssl && file_exists($ssl_info['local_cert'])) {
     $listen_socket = 'ssl://0.0.0.0:' . $listen_port;
     $opts = [
         'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false,
+            'verify_depth' => 0,
             'local_cert' => $ssl_info['local_cert'],
         ]
     ];
@@ -26,7 +25,6 @@ if ($is_ssl && file_exists($ssl_info['local_cert'])) {
 $_SERVER['DAV']['socket'] = $listen_socket;
 $_SERVER['DAV']['context'] = stream_context_create($opts);
 define('PROCESS_NUM', $process_num);
-
 class PhpDavServer
 {
     private $sock = null;
@@ -39,7 +37,12 @@ class PhpDavServer
      */
     private function __construct()
     {
-        $this->sock = @stream_socket_server($_SERVER['DAV']['socket'],$error_no,$error_msg,STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
+        $this->conn();
+        if(!$this->sock){
+            return false;
+        }
+        $this->run();
+
         $process_num = intval(PROCESS_NUM);
         if (!function_exists('pcntl_fork')) {
             $process_num = 0;
@@ -63,6 +66,26 @@ class PhpDavServer
     }
 
     /**
+     * conn
+     * @return bool
+     */
+    private function conn(){
+        for($i=0; $i<3; ++$i) {
+            if (!$this->sock) {
+                $this->sock = @stream_socket_server($_SERVER['DAV']['socket'], $error_no,$error_msg,STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,$_SERVER['DAV']['context']);
+            }
+            if ($this->sock) {
+                self::$conn = @stream_socket_accept($this->sock, -1);
+                if (self::$conn) {
+                    return true;
+                }
+            }
+            sleep(1);
+        }
+        return false;
+    }
+
+    /**
      * 启动webdav
      * @throws Exception
      */
@@ -80,9 +103,11 @@ class PhpDavServer
      */
     private function run()
     {
-        while (self::$conn = @stream_socket_accept($this->sock, -1)) {
+        while ($this->conn()) {
             $headers = $this->getHeaders();
+            Dav_Log::debug(print_r($headers, true));
             if (is_array($headers)) {
+                session_start();
                 Dav_Utils::getDavSet();
                 $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
                 $handler = new $handler();
@@ -91,8 +116,9 @@ class PhpDavServer
                     $this->preResponseHeader($msg['header']);
                     $this->responseMsg($msg);
                 }
+                session_commit();
             }
-            fclose(self::$conn);
+            @fclose(self::$conn);
             unset($_COOKIE);
         }
     }
@@ -104,7 +130,6 @@ class PhpDavServer
     private function getHeaders()
     {
         $headers = trim(stream_get_line(self::$conn, 8192, "\r\n\r\n"));
-        file_put_contents('/home/web/phpdav/log/debuga.log', $headers, FILE_APPEND);
         if (empty($headers)) {
             return false;
         }
@@ -119,6 +144,7 @@ class PhpDavServer
         if (strtoupper(strtok($msg[$length - 1], '/')) != 'HTTP') {
             return false;
         }
+        $_SERVER['REQUEST_TIME']= time();
         $_REQUEST['HEADERS'] = ['Method' => $requireMethod];
         $_REQUEST['HEADERS']['Uri'] = ($msg[1] == '*' || $length == 2) ? '/' : rtrim($msg[1], '*');
         if (!empty($headers)) {
@@ -159,40 +185,34 @@ class PhpDavServer
         if (count($cookieValue) < 2) {
             return false;
         }
-        $cName = trim($cookieValue[0]);
+        $cName = urldecode(trim($cookieValue[0]));
         $cValue = urldecode(trim($cookieValue[1]));
         $expire = 0;
-        $path = '';
-        $domain = '';
-        $secure = false;
-        $httpOnly = false;
+        $path = '/';
+        $domain = $_REQUEST['HEADERS']['Host'];
         if (!empty($cookieInfo[1])) {
             $cookieInfo = explode(';', $cookieInfo[1]);
             foreach ($cookieInfo as $info) {
                 $info = trim($info);
-                if (strcasecmp($info, 'Secure') == 0) {
-                    $secure = true;
-                } elseif (strcasecmp($info, 'HttpOnly') == 0) {
-                    $httpOnly = true;
-                } else {
-                    $info = explode('=', $info);
-                    if (count($info) == 2) {
-                        $iName = trim($info[0]);
-                        $iValue = trim($info[1]);
-                        if (strcasecmp($iName, 'Expires') == 0 && $expire == 0) {
-                            $expire = strtotime($iValue);
-                        } elseif (strcasecmp($iName, 'Max-Age') == 0 && is_numeric($iValue)) {
-                            $expire = time() + intval($iValue);
-                        } elseif (strcasecmp($iName, 'Domain') == 0) {
-                            $domain = $iValue;
-                        } elseif (strcasecmp($iName, 'Path') == 0) {
-                            $path = $iValue;
-                        }
+                $info = explode('=', $info);
+                if (count($info) == 2) {
+                    $iName = trim($info[0]);
+                    $iValue = trim($info[1]);
+                    if (strcasecmp($iName, 'Expires') == 0 && $expire == 0) {
+                        $expire = strtotime($iValue);
+                    } elseif (strcasecmp($iName, 'Max-Age') == 0 && is_numeric($iValue)) {
+                        $expire = time() + intval($iValue);
+                    } elseif (strcasecmp($iName, 'Domain') == 0) {
+                        $domain = $iValue;
+                    } elseif (strcasecmp($iName, 'Path') == 0) {
+                        $path = $iValue;
                     }
                 }
             }
         }
-        setcookie($cName, $cValue, $expire, $path, $domain, $secure, $httpOnly);
+        if ($domain == $_REQUEST['HEADERS']['Host'] && strcmp($_REQUEST['HEADERS']['Uri'], $path) >= 0 && $expire >= $_SERVER['REQUEST_TIME']) {
+            $_COOKIE[$cName] = $cValue;
+        }
     }
 
     /**
@@ -204,8 +224,8 @@ class PhpDavServer
         $cookInfo = explode(';', $cookInfo);
         foreach ($cookInfo as $info) {
             $info = explode('=', $info);
-            $name = trim($info[0]);
-            $value = trim($info[1]);
+            $name = urldecode(trim($info[0]));
+            $value = urldecode(trim($info[1]));
             $_COOKIE[$name] = urldecode($value);
         }
     }
@@ -216,11 +236,17 @@ class PhpDavServer
      */
     private function preResponseHeader(&$responseHeaders)
     {
+        $sessionName = session_name();
+        if(empty($_COOKIE[$sessionName])){
+            $sessionId = session_id();
+            $_COOKIE[$sessionName] = $sessionId;
+        }
         if (!empty($_COOKIE)) {
             foreach ($_COOKIE as $k => $v) {
                 $responseHeaders[] = 'Set-Cookie: ' . $k . '=' . rawurlencode($v);
             }
         }
+        unset($_COOKIE);
     }
 
     /**
