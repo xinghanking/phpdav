@@ -1,7 +1,14 @@
 #!/bin/sh
 
 BASE_ROOT=$(readlink -f `dirname "$0"`/../)
+
 . $BASE_ROOT/conf/phpdav.conf
+
+CURRENT_USER=`whoami`
+if [ "$DAV_USER" != "$CURRENT_USER" ]; then
+    su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
+    exit
+fi
 
 [ -z "$PHP_BIN" -o ! -x "$PHP_BIN" ] && echo 'The PHP interpreter address is not set or miss execution permission' && exit 1
 
@@ -26,11 +33,6 @@ else
     [ ! -z "$SSL_CA" -a -r "$SSL_CA" ] && echo '$cafile='"'$SSL_CA';" >> $BASE_ROOT/conf/.dav_info.php     
 fi
 [ ! -z "$PROCESS_NUM" ] && echo '$process_num='$PROCESS_NUM';' >> $BASE_ROOT/conf/.dav_info.php
-CURRENT_USER=`whoami`
-if [ "$DAV_USER" != "$CURRENT_USER" ]; then
-    su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
-    exit
-fi
 
 PHPDAV_EXEC="$BASE_ROOT/lib/PhpDavServer.php"
 
