@@ -15,7 +15,7 @@ class Dav_Log
             Dav_PhyOperation::createDir(LOG_DIR);
         }
         $debugLogFile = LOG_DIR . 'debug.log';
-        file_put_contents($debugLogFile, date('Y-m-d H:i:s', time()) . ' ' . $message, FILE_APPEND);
+        file_put_contents($debugLogFile, date('Y-m-d H:i:s', time()) . ' ' . $message . PHP_EOL, FILE_APPEND);
     }
 
     /**

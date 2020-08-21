@@ -1,25 +1,36 @@
 #!/bin/sh
 
-
-#php解释器地址
-PHP_BIN="/usr/bin/php"
-DAV_USER=
-DAV_GROUP=
-
 BASE_ROOT=$(readlink -f `dirname "$0"`/../)
+. $BASE_ROOT/conf/phpdav.conf
 
+[ -z "$PHP_BIN" -o ! -x "$PHP_BIN" ] && echo 'The PHP interpreter address is not set or miss execution permission' && exit 1
 
-OWNER=`ls -ld $BASE_ROOT|awk '{print $3}'`
-OWNGROUP=`ls -ld $BASE_ROOT|awk '{print $4}'`
+[ -z "$DAV_USER" ] && DAV_USER=`ls -ld $BASE_ROOT|awk '{print $3}'`
+[ -z "$DAV_GROUP" ] && DAV_GROUP=`ls -ld $BASE_ROOT|awk '{print $4}'`
 
-[ -z "$DAV_USER" ] && DAV_USER=$OWNER
-[ -z "$DAV_GROUP" ] && DAV_GROUP=$OWNGROUP
-
+echo '<?php' > $BASE_ROOT/conf/.dav_info.php
+if [ -z "$IS_SSL" -o "$IS_SSL" = "off" ]; then
+    echo '$'"listen_address='tcp://$LISTEN_IP:"$PORT"';" >> $BASE_ROOT/conf/.dav_info.php
+    echo '$is_ssl=false;' >> $BASE_ROOT/conf/.dav_info.php
+else
+    echo '$listen_address='"'ssl://$LISTEN_IP:$PORT';" >> $BASE_ROOT/conf/.dav_info.php
+    echo '$is_ssl=true;' >> $BASE_ROOT/conf/.dav_info.php
+    if [ -z "$SSL_CERT" -o ! -r "$SSL_CERT" ]; then
+        echo 'The ssl cert is not set or miss read permission'
+        exit 1
+    fi
+    echo '$local_cert='"'$SSL_CERT';" >> $BASE_ROOT/conf/.dav_info.php
+    [ ! -z "$SSL_PK" -a -r "$SSL_PK" ] && echo '$local_pk='"'$SSL_PK';" >> $BASE_ROOT/conf/.dav_info.php
+    [ ! -z "$PASSPHRASE" ] && echo '$passphrase='"'$PASSPHRASE';" >> $BASE_ROOT/conf/.dav_info.php
+    [ "$VERIFY_CLIENT" = "on" ] && echo '$verify_peer=true;' >> $BASE_ROOT/conf/.dav_info.php
+    [ ! -z "$SSL_CA" -a -r "$SSL_CA" ] && echo '$cafile='"'$SSL_CA';" >> $BASE_ROOT/conf/.dav_info.php     
+fi
+[ ! -z "$PROCESS_NUM" ] && echo '$process_num='$PROCESS_NUM';' >> $BASE_ROOT/conf/.dav_info.php
 CURRENT_USER=`whoami`
 if [ "$DAV_USER" != "$CURRENT_USER" ]; then
     su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
     exit
-fi 
+fi
 
 PHPDAV_EXEC="$BASE_ROOT/lib/PhpDavServer.php"
 
@@ -32,13 +43,22 @@ pd_status(){
 pd_start() {
     pd_status && echo 'phpdav is running.' && return 0
     NOTE_PRE="Starting phpdav:         "
-    nohup $PHP_BIN $PHPDAV_EXEC >/dev/null 2>&1 &
-    retval=$?
-    [ $retval -eq 0 ] && echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]" || echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+    nohup $PHP_BIN $PHPDAV_EXEC >/dev/null 2>phpdav.err &
+    sleep 1
+    if [ -f "phpdav.err" ]; then
+        MSG=`cat phpdav.err`
+        if [ ! -z "$MSG" ]; then
+            echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
+            echo $MSG
+            rm -fr phpdav.err
+            exit 1
+        fi
+    fi
+    echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]"
 }
 
 pd_stop() {
-    pd_status 
+    pd_status
     [ $? -gt 0 ] && echo  'phpdav is not running or had stopped.' && return 0
     NOTE_PRE="Stopping phpdav:         "
     kill -9 `ps -aux|grep "php $PHPDAV_EXEC"|grep -v 'grep'|awk '{print $2}'`

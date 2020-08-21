@@ -1,13 +1,16 @@
 #!/bin/sh
 
-DAV_USER="web"
-DAV_GROUP="web"
-
-#nginx程序地址
-#NGINX_BIN="/home/web/np/nginx/sbin/nginx"
-
 BASE_ROOT=$(readlink -f `dirname "$0"`/../)
-. $BASE_ROOT/conf/np.conf
+. $BASE_ROOT/conf/phpdav.conf
+
+if [ -z $DAV_USER ]; then
+    DAV_USER=`ls -ld $BASE_ROOT|awk '{print $3}'`
+fi
+
+if [ -z $DAV_GROUP ]; then
+    DAV_GROUP=`ls -ld $BASE_ROOT|awk '{print $4}'`
+fi
+
 #nginx安装目录
 NGINX_HOME="$BASE_ROOT/np/nginx"
 [ -d $NGINX_HOME ] || mkdir -p $NGINX_HOME
@@ -24,27 +27,49 @@ NGINX_PID="$NGINX_HOME/run/nginx.pid"
 
 #程序名
 PROC_NAME="nginx"
-
-[ ! -x $NGINX_BIN ] && echo "nginx exec file is not set or corrupted" && exit 5
-[ ! -r $NGINX_CONF ] && echo "nginx config file is not set or can not read" && exit 6
+[[ -z $NGINX_BIN || ! -x $NGINX_BIN ]] && echo "nginx exec file is not set or corrupted" && exit 1
+[ ! -r $NGINX_CONF ] && echo "nginx config file is not set or can not read" && exit 1
 
 NGINX_EXEC="$NGINX_BIN -p $NGINX_HOME -c $NGINX_CONF"
 
 CURRENT_USER=`whoami`
 
-if [[ "$CURRENT_USER" != 'root'  &&  "$CURRENT_USER" != "$DAV_USER" ]]; then
+if [ "$CURRENT_USER" != 'root' -a "$CURRENT_USER" != "$DAV_USER" ]; then
     NGINX_EXEC="sudo $NGINX_EXEC"
 fi
 
-if [ $CURRENT_USER != $DAV_USER ]; then
-    echo "user $DAV_USER $DAV_GROUP;" > $BASE_ROOT/conf/nginx/user.conf
+echo '' > $BASE_ROOT/conf/nginx/user.conf
+if [ "$PORT" = “80” -o “$PORT” = "443" ]; then
+    if [ "$CURRENT_USER" != 'root' ]; then
+        NGINX_EXEC="sudo $NGINX_EXEC"
+    fi
+    if [ $CURRENT_USER != $DAV_USER ]; then
+       echo "user $DAV_USER $DAV_GROUP;" > $BASE_ROOT/conf/nginx/user.conf
+    fi
 else
-    echo '' > $BASE_ROOT/conf/nginx/user.conf
+    [ $CURRENT_USER != $DAV_USER ] && su -c "$0 $*" $DAV_USER -s "/bin/sh" -g $DAV_GROUP && exit
 fi
-echo 'set $phpdav_root "'$BASE_ROOT'";' >  $BASE_ROOT/conf/nginx/phpdav_root.conf
+
+if [ "$IS_SSL" = "off" ]; then
+    echo "listen $LISTEN_IP:$PORT;" > $BASE_ROOT/conf/nginx/dav.conf
+else
+    echo "listen $LISTEN_IP:$PORT ssl;" > $BASE_ROOT/conf/nginx/dav.conf
+    if [ ! -z $SSL_CERT -a -r $SSL_CERT ]; then
+        echo "ssl_certificate $SSL_CERT;" >> $BASE_ROOT/conf/nginx/dav.conf
+    fi
+    if [ ! -z $SSL_PK -a -r $SSL_PK ]; then
+        echo "ssl_certificate_key $SSL_PK;" >> $BASE_ROOT/conf/nginx/dav.conf
+    fi
+    if [ $VERIFY_CLIENT = "on" ] && [ ! -z $SSL_CA -a -r $SSL_CA ]; then
+        echo 'ssl_verify_client on;' >> $BASE_ROOT/conf/nginx/dav.conf
+        echo "ssl_clent_certificate $SSL_CA" >> $BASE_ROOT/conf/nginx/dav.conf
+    fi
+fi
+
+echo 'set $phpdav_root "'$BASE_ROOT'";' >>  $BASE_ROOT/conf/nginx/dav.conf
 nx_status(){
     pid=-1
-    if [[ -r $NGINX_PID ]]; then
+    if [ -r $NGINX_PID ]; then
         pid=`cat $NGINX_PID`
         if [ $(ps -p $pid|wc -l) -le 1 ]; then
             pid=-1
@@ -63,6 +88,8 @@ nx_start() {
 }
 
 nx_stop() {
+    nx_status 
+    [ $? -gt 0 ] && echo 'nginx is not running.' && exit
     NOTE_PRE="Stopping $PROC_NAME:         "
     $NGINX_EXEC -s stop
     retval=$?
@@ -91,10 +118,11 @@ case "$1" in
         nx_start
         ;;
     stop)
-        nx_status && nx_stop
+        nx_stop 
         ;;
     restart)
-        nx_status && nx_stop && sleep 1 && nx_start
+        nx_status && nx_stop && sleep 1
+        nx_start
         ;;
     reopen)
         nx_status && nx_reopen || nx_start
