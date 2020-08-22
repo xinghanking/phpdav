@@ -9,15 +9,15 @@ if (empty($_SESSION['LANG'])) {
         if (empty($_SERVER['LANG'])) {
             $_SERVER['LANG'] = @exec('echo $LANG');
         }
-        if (empty($_SERVER['LANG'])) {
-            $_SERVER['LANG'] = 'UTF-8';
-        } else {
-            $_SERVER['LANG'] = explode('.', $_SERVER['LANG']);
-            $_SERVER['LANG'] = $_SERVER['LANG'][count($_SERVER['LANG']) - 1];
-        }
     }
+    if (empty($_SERVER['LANG'])) {
+        $_SERVER['LANG'] = 'UTF-8';
+    } else {
+        $_SERVER['LANG'] = explode('.', $_SERVER['LANG']);
+        $_SERVER['LANG'] = $_SERVER['LANG'][count($_SERVER['LANG']) - 1];
+    }
+    $_SESSION['LANG'] = $_SERVER['LANG'];
 }
-$_SESSION['LANG'] = $_SERVER['LANG'];
 $_SERVER['NET_DISKS'] = $net_disks;
 define('LOG_DIR', BASE_ROOT . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR);
 define('SQLITE_INIT_FILE', BASE_ROOT . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . 'db' . DIRECTORY_SEPARATOR . 'sqlite' . DIRECTORY_SEPARATOR . 'phpdav.sql');
