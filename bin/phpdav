@@ -4,6 +4,14 @@ BASE_ROOT=$(readlink -f `dirname "$0"`/../)
 
 . $BASE_ROOT/conf/phpdav.conf
 
+if [ -z $DAV_USER ]; then
+    DAV_USER=`ls -ld $BASE_ROOT|awk '{print $3}'`
+fi
+
+if [ -z $DAV_GROUP ]; then
+    DAV_GROUP=`ls -ld $BASE_ROOT|awk '{print $4}'`
+fi
+
 CURRENT_USER=`whoami`
 if [ "$DAV_USER" != "$CURRENT_USER" ]; then
     su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
