@@ -60,9 +60,9 @@ pd_start() {
         if [ ! -z "$MSG" ]; then
             echo -e "$NOTE_PRE[ \033[31m fail \033[0m ]"
             echo $MSG
-            rm -fr phpdav.err
             exit 1
         fi
+        rm -fr phpdav.err
     fi
     echo -e "$NOTE_PRE[ \033[32m OK \033[0m ]"
 }

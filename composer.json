@@ -20,5 +20,10 @@
     "ext-libxml": "*",
     "ext-json": "*",
     "ext-sqlite3": "*"
+  },
+  "scripts": {
+    "post-package-install": [
+      "chmod +x bin/*"
+    ]
   }
 }
