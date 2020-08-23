@@ -23,7 +23,9 @@
   },
   "scripts": {
     "post-package-install": [
-      "chmod +x bin/*"
+      "chmod +x bin/phpdav",
+      "chmod +x bin/nginx",
+      "chmod +x bin/php-fpm"
     ]
   }
 }
