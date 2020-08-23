@@ -39,7 +39,7 @@ if [ "$CURRENT_USER" != 'root' -a "$CURRENT_USER" != "$DAV_USER" ]; then
 fi
 
 echo '' > $BASE_ROOT/conf/nginx/user.conf
-if [ "$PORT" = “80” -o “$PORT” = "443" ]; then
+if [ "$PORT" = "80" -o "$PORT" = "443" ]; then
     if [ "$CURRENT_USER" != 'root' ]; then
         NGINX_EXEC="sudo $NGINX_EXEC"
     fi
@@ -47,7 +47,7 @@ if [ "$PORT" = “80” -o “$PORT” = "443" ]; then
        echo "user $DAV_USER $DAV_GROUP;" > $BASE_ROOT/conf/nginx/user.conf
     fi
 else
-    [ $CURRENT_USER != $DAV_USER ] && su -c "$0 $*" $DAV_USER -s "/bin/sh" -g $DAV_GROUP && exit
+    [ $CURRENT_USER != $DAV_USER ] && su -c "$0 $*" $DAV_USER -s "/bin/bash" -g $DAV_GROUP && exit
 fi
 
 if [ "$IS_SSL" = "off" ]; then
