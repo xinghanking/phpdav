@@ -18,4 +18,3 @@ nginx版本建议nginx1.11.0以上
     bin/php-fpm start
     bin/nginx start
     同样可以建立一个webdav站点
-3. 设置不同的访问主机名（域名、IP）地址映射各自的服务器目录地址，可按照config.ini.php里的提示修改，注意要给你php的执行用户读写执行权限(rwx)
