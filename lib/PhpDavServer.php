@@ -4,6 +4,7 @@ set_time_limit(0);
 try {
     include_once __DIR__ . DIRECTORY_SEPARATOR . 'auto_prepend.php';
     include_once BASE_ROOT . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . '.dav_info.php';
+    include_once BASE_ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'DavSession.php';
     $opts = ['http' => ['Server' => 'phpdav']];
     if ($is_ssl && !empty($local_cert) && file_exists($local_cert)) {
         $opts = [
@@ -26,6 +27,7 @@ try {
     $_SERVER['DAV']['socket'] = $listen_address;
     $_SERVER['DAV']['context'] = stream_context_create($opts);
     define('PROCESS_NUM', !empty($process_num) && is_numeric($process_num) ? intval($process_num) : 1);
+    session_start();
 
     class PhpDavServer
     {
@@ -104,9 +106,8 @@ try {
         {
             while ($this->conn()) {
                 $headers = $this->getHeaders();
-                Dav_Log::debug(print_r($headers, true));
+                DavSession::init();
                 if (is_array($headers)) {
-                    session_start();
                     Dav_Utils::getDavSet();
                     $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
                     $handler = new $handler();
@@ -115,7 +116,6 @@ try {
                         $this->preResponseHeader($msg['header']);
                         $this->responseMsg($msg);
                     }
-                    session_commit();
                 }
                 @fclose(self::$conn);
                 unset($_COOKIE);
@@ -235,11 +235,6 @@ try {
          */
         private function preResponseHeader(&$responseHeaders)
         {
-            $sessionName = session_name();
-            if (empty($_COOKIE[$sessionName])) {
-                $sessionId = session_id();
-                $_COOKIE[$sessionName] = $sessionId;
-            }
             if (!empty($_COOKIE)) {
                 foreach ($_COOKIE as $k => $v) {
                     $responseHeaders[] = 'Set-Cookie: ' . $k . '=' . rawurlencode($v);
