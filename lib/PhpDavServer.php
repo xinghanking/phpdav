@@ -106,12 +106,27 @@ try {
         {
             while ($this->conn()) {
                 $headers = $this->getHeaders();
-                DavSession::init();
                 if (is_array($headers)) {
-                    Dav_Utils::getDavSet();
-                    $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
-                    $handler = new $handler();
-                    $msg = $handler->execute();
+                    try {
+                        DavSession::init();
+                        Dav_Utils::getDavSet();
+                        $this->auth();
+                        $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
+                        $handler = new $handler();
+                        $msg = $handler->execute();
+                    } catch (Exception $e) {
+                        $code = $e->getCode();
+                        if (!isset(Dav_Status::$Msg[$code])) {
+                            $code = 503;
+                        }
+                        $msg['header']=[Dav_Status::$Msg[$code]];
+                        if ($code == 401) {
+                            $msg['header'][]='Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
+                            $msg['header'][]='WWW-Authenticate: Basic realm="login WebDav site"';
+                        } else {
+                            Dav_Log::error($e);
+                        }
+                    }
                     if (isset($msg['header'])) {
                         $this->preResponseHeader($msg['header']);
                         $this->responseMsg($msg);
@@ -227,6 +242,30 @@ try {
                 $value = urldecode(trim($info[1]));
                 $_COOKIE[$name] = urldecode($value);
             }
+        }
+
+        /**
+         * 身份验证
+         * @return bool
+         */
+        private function auth()
+        {
+            $davInfo = empty($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]) ? $_SERVER['NET_DISKS']['default'] : $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']];
+            if (empty($davInfo ['is_auth']) || !empty($_SESSION['auth'])) {
+                return true;
+            }
+
+            if (isset($_REQUEST['HEADERS']['Authorization'])) {
+                $authInfo = preg_split('/\s+/', $_REQUEST['HEADERS']['Authorization']);
+                $authInfo = base64_decode(trim($authInfo[1]));
+                $authInfo = explode(':', $authInfo);
+                if (isset($davInfo['user_list'][$authInfo[0]]) && $davInfo['user_list'][$authInfo[0]] == $authInfo[1]) {
+                    $_SESSION['auth'] = true;
+                    return true;
+                }
+                throw new Exception(Dav_Status::$Msg['403'], 403);
+            }
+            throw new Exception(Dav_Status::$Msg['401'], 401);
         }
 
         /**
