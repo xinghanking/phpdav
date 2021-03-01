@@ -33,22 +33,18 @@ class DavSession
      */
     public function start() {
         $sessionName = session_name();
+        $sessionId = session_id();
         if (empty($_COOKIE[$sessionName])){
-            $sessionId = empty($_SESSION['id']) ? session_id() : $_SESSION['id'];
             $_COOKIE[$sessionName] = md5($sessionId . getmypid() . microtime(true));
-            $_SESSION['id'] = $_COOKIE[$sessionName];
-            session_id($_SESSION['id']);
-        } elseif(empty($_SESSION['id'])){
-            $_SESSION['id'] = $_COOKIE[$sessionName];
-            session_id($_SESSION['id']);
-        }
-        if ($_COOKIE[$sessionName] != $_SESSION['id']) {
+            session_id($_COOKIE[$sessionName]);
+            $_SESSION = [];
+        } elseif($_COOKIE[$sessionName] != $sessionId){
             $this->save();
+            session_id($_COOKIE[$sessionName]);
             $lastTime = time() - $this->cacheTime;
             $sql = "SELECT `session_info` FROM `dav_session` where `session_id`='" . $_COOKIE[$sessionName] . "' AND `create_time`>" . $lastTime;
             $sessionInfo = self::$_db->querySingle($sql);
-            $_SESSION = empty($sessionInfo) ? ['id' => $_COOKIE[$sessionName]] : json_decode($sessionInfo, true);
-            session_id($_SESSION['id']);
+            $_SESSION = empty($sessionInfo) ? [] : json_decode($sessionInfo, true);
         }
     }
 
