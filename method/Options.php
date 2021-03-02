@@ -17,7 +17,7 @@ class Method_Options extends Dav_Method
                 'Accept-Charset: utf-8',
                 'DAV: 1,2,3',
                 'MS-Author-Via: DAV',
-                'Allow: OPTIONS,GET,HEAD,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,PUT,LOCK,UNLOCK',
+                'Allow: OPTIONS,GET,HEAD,DELETE,PROPFIND,PROPPATCH,COPY,MKCOL,MOVE,PUT,LOCK,UNLOCK',
                 'Content-Length: 0',
                 'cache-control: public, max-age=3600'
             ]
