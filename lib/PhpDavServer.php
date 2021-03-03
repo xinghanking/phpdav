@@ -119,10 +119,11 @@ try {
                         if (!isset(Dav_Status::$Msg[$code])) {
                             $code = 503;
                         }
-                        $msg['header']=[Dav_Status::$Msg[$code]];
+                        $msg = ['header'=> [Dav_Status::$Msg[$code]]];
                         if ($code == 401) {
-                            $msg['header'][]='WWW-Authenticate: Basic';
                             $msg['header'][]='WWW-Authenticate: Basic realm="login WebDav site"';
+                            $msg['header'][]='Content-Length: 0';
+                            $msg['header'][]='Proxy-Support: Session-Based-Authentication';
                         } else {
                             Dav_Log::error($e);
                         }
@@ -279,6 +280,8 @@ try {
                     $responseHeaders[] = 'Set-Cookie: ' . $k . '=' . rawurlencode($v);
                 }
             }
+            $responseHeaders[] = 'User-Agent: phpdav/1.1';
+            $responseHeaders = array_unique($responseHeaders);
             unset($_COOKIE);
         }
 
