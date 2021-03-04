@@ -18,7 +18,6 @@ class Method_Options extends Dav_Method
                 'DAV: 1,2,3',
                 'MS-Author-Via: DAV',
                 'Allow: OPTIONS,GET,HEAD,DELETE,PROPFIND,PROPPATCH,COPY,MKCOL,MOVE,PUT,LOCK,UNLOCK',
-                'Content-Length: 0',
                 'Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT'
             ]
         ];
