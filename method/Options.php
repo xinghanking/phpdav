@@ -19,7 +19,7 @@ class Method_Options extends Dav_Method
                 'MS-Author-Via: DAV',
                 'Allow: OPTIONS,GET,HEAD,DELETE,PROPFIND,PROPPATCH,COPY,MKCOL,MOVE,PUT,LOCK,UNLOCK',
                 'Content-Length: 0',
-                'cache-control: public, max-age=3600'
+                'Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT'
             ]
         ];
         return $response;
