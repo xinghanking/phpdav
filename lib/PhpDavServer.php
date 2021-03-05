@@ -133,7 +133,7 @@ try {
                         $this->responseMsg($msg);
                     }
                 }
-                //@fclose(self::$conn);
+                @fclose(self::$conn);
                 unset($_COOKIE);
             }
         }
@@ -164,7 +164,7 @@ try {
             $_REQUEST['HEADERS']['Uri'] = ($msg[1] == '*' || $length == 2) ? '/' : rtrim($msg[1], '*');
             if (!empty($headers)) {
                 foreach ($headers as $msg) {
-                    $msg = explode(':', trim($msg));
+                    $msg = explode(':', trim($msg), 2);
                     $headerName = ucwords(trim($msg[0]));
                     $headerValue = trim($msg[1]);
                     $_REQUEST['HEADERS'][$headerName] = $headerValue;

@@ -47,7 +47,7 @@ class Method_Put extends Dav_Method
             return ['code' => 503];
         }
         if ($objResource->status == Dav_Resource::STATUS_DELETE) {
-            $objResource->status = Dav_Resource::STATUS_NORMAL;
+            Dav_Resource::getInstance();
             return ['code' => 201];
         } else {
             return ['code' => 200];
