@@ -1,0 +1,31 @@
+{
+  "name": "liuzhongliang/phpdav",
+  "description": "Create a WebDAV site for managing server files",
+  "keywords": ["phpdav", "webdav"],
+  "license": "MPL-2.0",
+  "type": "project",
+  "authors": [
+    {
+      "name": "刘重量",
+      "email": "13439694341@qq.com",
+      "homepage": "https://zhuanlan.zhihu.com/c_1108765551631093760"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.16",
+    "ext-hash": "*",
+    "ext-pcre": "*",
+    "ext-mbstring": "*",
+    "ext-xml": "*",
+    "ext-libxml": "*",
+    "ext-json": "*",
+    "ext-sqlite3": "*"
+  },
+  "scripts": {
+    "post-package-install": [
+      "chmod +x bin/phpdav",
+      "chmod +x bin/nginx",
+      "chmod +x bin/php-fpm"
+    ]
+  }
+}

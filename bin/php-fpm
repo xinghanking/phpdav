@@ -6,19 +6,22 @@ set -E
 trap 'echo "Fail unexpectedly on ${BASH_SOURCE[0]}:$LINENO!" >&2' ERR
 
 BASE_ROOT=$(readlink -f `dirname "$0"`/../)
-. $BASE_ROOT/conf/np.conf
+. $BASE_ROOT/conf/phpdav.conf
+
+[[ -z $PHP_FPM_BIN || ! -x $PHP_FPM_BIN ]] && echo 'php-fpm not set  or corrupted' && exit 1
+
+
+if [ -z $DAV_USER ]; then
+    DAV_USER=`ls -ld $BASE_ROOT|awk '{print $3}'`
+fi
 
 CURRENT_USER=`whoami`
 
-if [ -z $DAV_USER ]; then
-    DAV_USER=$CURRENT_USER
-fi
-
 if [ "$DAV_USER" != "$CURRENT_USER" ]; then
-    if [ -z $DAV_USER ]; then
+    if [ -z $DAV_GROUP ]; then
         su -c "$0 $*" -s "/bin/sh" "$DAV_USER"
     else
-        su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_USER"
+        su -c "$0 $*" -s "/bin/sh" "$DAV_USER" -g "$DAV_GROUP"
     fi
     exit
 fi
@@ -80,6 +83,12 @@ wait_for_pid () {
 
 case "$1" in
     start)
+        if [ -r $PHP_FPM_PID ] ; then
+            pid=`cat $PHP_FPM_PID`
+            if ps -p $pid|grep -q $pid; then
+                echo 'php-fpm is running' && exit 0
+            fi
+        fi
         echo -n "Starting php-fpm    "
 
         $PHP_FPM_BIN --daemonize $php_opts
