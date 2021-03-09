@@ -121,9 +121,10 @@ try {
                         }
                         $msg = ['header'=> [Dav_Status::$Msg[$code]]];
                         if ($code == 401) {
-                            $msg['header'][]='Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
-                            $msg['header'][]='WWW-Authenticate: Basic realm="login WebDav site"';
-                            $msg['header'][]='Content-Length: 0';
+                            $msg['header'][] = 'Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
+                            $msg['header'][] = 'WWW-Authenticate: Basic realm="login WebDav site"';
+                            $msg['header'][] = 'Content-Type: text/html; charset=utf-8';
+                            $msg['header'][] = 'Content-Length: 0';
                         } elseif ($code >= 500) {
                             Dav_Log::error($e);
                         }
