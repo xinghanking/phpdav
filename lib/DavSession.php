@@ -53,7 +53,7 @@ class DavSession
      */
     public function save(){
         $sessionInfo = json_encode($_SESSION);
-        $sql = "REPLACE INTO `dav_session`(`session_id`,`session_info`,`create_time`) values ('" . $_SESSION['id'] . "','" . $sessionInfo . "','" . time() . "')";
+        $sql = "REPLACE INTO `dav_session`(`session_id`,`session_info`,`create_time`) values ('" . session_id() . "','" . $sessionInfo . "','" . time() . "')";
         self::$_db->exec($sql);
     }
 
