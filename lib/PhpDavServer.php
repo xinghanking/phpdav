@@ -124,7 +124,7 @@ try {
                             $msg['header'][]='Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
                             $msg['header'][]='WWW-Authenticate: Basic realm="login WebDav site"';
                             $msg['header'][]='Content-Length: 0';
-                        } else {
+                        } elseif ($code >= 500) {
                             Dav_Log::error($e);
                         }
                     }
