@@ -78,10 +78,7 @@ try {
                 $this->sock = @stream_socket_server($_SERVER['DAV']['socket'],$error_no,$error_msg,STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
             }
             if ($this->sock) {
-                self::$conn = @stream_socket_accept($this->sock, -1);
-                if (self::$conn) {
-                    return true;
-                }
+                return true;
             }
             throw new Exception($error_msg, $error_no);
         }
@@ -105,37 +102,40 @@ try {
         private function run()
         {
             while ($this->conn()) {
-                $headers = $this->getHeaders();
-                if (is_array($headers)) {
-                    try {
-                        DavSession::init();
-                        Dav_Utils::getDavSet();
-                        $this->auth();
-                        $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
-                        $handler = new $handler();
-                        $msg = $handler->execute();
-                    } catch (Exception $e) {
-                        $code = $e->getCode();
-                        if (!isset(Dav_Status::$Msg[$code])) {
-                            $code = 503;
+                self::$conn = @stream_socket_accept($this->sock, 0);
+                if (self::$conn) {
+                    $headers = $this->getHeaders();
+                    if (is_array($headers)) {
+                        try {
+                            DavSession::init();
+                            Dav_Utils::getDavSet();
+                            $this->auth();
+                            $handler = 'Method_' . Dav_Utils::$_Methods[$headers['Method']];
+                            $handler = new $handler();
+                            $msg = $handler->execute();
+                        } catch (Exception $e) {
+                            $code = $e->getCode();
+                            if (!isset(Dav_Status::$Msg[$code])) {
+                                $code = 503;
+                            }
+                            $msg = ['header' => [Dav_Status::$Msg[$code]]];
+                            if ($code == 401) {
+                                $msg['header'][] = 'Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
+                                $msg['header'][] = 'WWW-Authenticate: Basic realm="login WebDav site"';
+                                $msg['header'][] = 'Content-Type: text/html; charset=utf-8';
+                                $msg['header'][] = 'Content-Length: 0';
+                            } elseif ($code >= 500) {
+                                Dav_Log::error($e);
+                            }
                         }
-                        $msg = ['header'=> [Dav_Status::$Msg[$code]]];
-                        if ($code == 401) {
-                            $msg['header'][] = 'Date: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT';
-                            $msg['header'][] = 'WWW-Authenticate: Basic realm="login WebDav site"';
-                            $msg['header'][] = 'Content-Type: text/html; charset=utf-8';
-                            $msg['header'][] = 'Content-Length: 0';
-                        } elseif ($code >= 500) {
-                            Dav_Log::error($e);
+                        if (isset($msg['header'])) {
+                            $this->preResponseHeader($msg['header']);
+                            $this->responseMsg($msg);
                         }
                     }
-                    if (isset($msg['header'])) {
-                        $this->preResponseHeader($msg['header']);
-                        $this->responseMsg($msg);
-                    }
+                    @fclose(self::$conn);
+                    unset($_COOKIE);
                 }
-                @fclose(self::$conn);
-                unset($_COOKIE);
             }
         }
 
