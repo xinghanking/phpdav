@@ -155,7 +155,7 @@ class Dav_Utils
                         'is_w' => true,
                         'list' => explode(',', strtoupper(substr($_REQUEST['HEADERS'][$field], 2)))
                     ];
-                } elseif ($_REQUEST['HEADERS'][$field]{0} == '"') {
+                } elseif (substr($_REQUEST['HEADERS'][$field], 0, 1) === '"') {
                     $eTagList[] = [
                         'is_w' => false,
                         'list' => explode(',', $_REQUEST['HEADERS'][$field])
