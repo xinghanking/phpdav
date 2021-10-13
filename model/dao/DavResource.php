@@ -384,7 +384,7 @@ class Dao_DavResource extends Dav_Db
             if ($contentType == Dao_ResourceProp::MIME_TYPE_DIR) {
                 $pathInfoList = $this->select('`id`, `path`', ['WHERE' => "`path` LIKE '" . $sourceResource . DIRECTORY_SEPARATOR . "%'"]);
                 foreach ($pathInfoList as $info) {
-                    $path = $destination . DIRECTORY_SEPARATOR . substr($info['path'], strlen($sourceResource));
+                    $path = $destination . substr($info['path'], strlen($sourceResource));
                     $this->update(['path' => $path], ['id=' . $info['id']]);
                 }
             }
