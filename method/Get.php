@@ -109,14 +109,14 @@ class Method_Get extends Dav_Method
                 return $response;
             }
             $response['headers'][] = 'Content-Length: ' . $length;
-            $response['headers'][] = Dav_Status::$Msg[$response['code']];
+            array_unshift($response['headers'], Dav_Status::$Msg[$response['code']]);
             Dav_Utils::response_headers($response['headers']);
             $this->outMaxContent($objResource, $range['start'], $range['end']);
             return ['code' => 0];
         }
         set_time_limit(0);
-        $response['headers'][] = Dav_Status::$Msg[206];
         $response['headers'][] = 'Content-Type: multipart/byteranges; boundary=SWORD_OF_LZL';
+        array_unshift($response['headers'], Dav_Status::$Msg[206]);
         Dav_Utils::response_headers($response['headers']);
         foreach ($rangeList as $range) {
             $rangeHeaders = [
