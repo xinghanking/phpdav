@@ -20,7 +20,7 @@ class Method_Put extends Dav_Method
             return ['code' => 503];
         }
         $isLocked = $objResource->checkLocked();
-        if ($isLocked && !in_array($objResource->locked_info['locktoken'], $this->arrInput['locktoken'])) {
+        if ($isLocked && !(isset($_SESSSION['user']) && in_array($_SESSSION['user'], $objResource->locked_info['owner'])) && !in_array($objResource->locked_info['locktoken'], $this->arrInput['locktoken'])) {
             return ['code' => 403];
         }
         if ($objResource->status == Dav_Resource::STATUS_NORMAL) {
@@ -38,16 +38,13 @@ class Method_Put extends Dav_Method
                 }
             }
         }
-        if (empty($this->arrInput['Request-Body-File'])) {
-            $res = Dav_Utils::save_data($_REQUEST['HEADERS']['Resource']);
-        } else {
-            $res = Dav_PhyOperation::move($this->arrInput['Request-Body-File'], $_REQUEST['HEADERS']['Resource']);
-        }
+        $res = Dav_Utils::save_data($_REQUEST['HEADERS']['Resource']);
         if (false === $res) {
             return ['code' => 503];
         }
+        Dao_DavResource::getInstance()->getResourceConf($_REQUEST['HEADERS']['Resource'], true);
+        Dav_Resource::getInstance();
         if ($objResource->status == Dav_Resource::STATUS_DELETE) {
-            Dav_Resource::getInstance();
             return ['code' => 201];
         } else {
             return ['code' => 200];

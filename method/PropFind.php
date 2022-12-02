@@ -24,15 +24,15 @@ class Method_PropFind extends Dav_Method
     public function handler()
     {
         $objResource = Dav_Resource::getInstance();
-        if (!isset($objResource->status)) {
-            return ['code' => 503];
-        }
         if ($objResource->status == Dav_Resource::STATUS_DELETE) {
             return ['code' => 404];
         }
+        if ($objResource->status == Dav_Resource::STATUS_FAILED) {
+            return ['code' => 503];
+        }
         $multistatus = [];
         foreach ($this->arrInput['resources'] as $resource) {
-            $objResource = Dav_Resource::getInstance($resource);
+            $objResource = Dav_Resource::getInstance($resource, true);
             $responseList = $this->getResponse($objResource, $this->arrInput['depth']);
             $multistatus = array_merge($multistatus, $responseList);
         }

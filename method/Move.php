@@ -10,62 +10,50 @@ class Method_Move extends Dav_Method
      */
     protected function handler()
     {
-        try {
-            $sourceBaseResource = Dav_Resource::getInstance($_REQUEST['HEADERS']['Resource']);
-            if (empty($sourceBaseResource) || $sourceBaseResource->status == Dav_Resource::STATUS_FAILED) {
-                return ['code' => 503];
+        $sourceBaseResource = Dav_Resource::getInstance();
+        if (empty($sourceBaseResource) || $sourceBaseResource->status == Dav_Resource::STATUS_FAILED) {
+            return ['code' => 503];
+        }
+        if ($sourceBaseResource->status == Dav_Resource::STATUS_DELETE) {
+            return ['code' => 404];
+        }
+        if (isset($arrInput['Overwrite']) && $this->arrInput['Overwrite'] == 'F' && file_exists($this->arrInput['Destination']) && (!is_dir($this->arrInput['Destination']) || substr($this->arrInput['Destination'], -1) != DIRECTORY_SEPARATOR)) {
+            return ['code' => 412];
+        }
+        $destResourceName = rtrim($this->arrInput['Destination'], '/');
+        $objDestResource = Dav_Resource::getInstance($destResourceName, true);
+        if ($objDestResource->status == Dav_Resource::STATUS_FAILED) {
+            return ['code' => 503];
+        }
+        if (substr($_REQUEST['HEADERS']['Path'], -1) == '*') {
+            if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type != Dao_ResourceProp::MIME_TYPE_DIR) {
+                return ['code' => 412];
             }
-            if ($sourceBaseResource->status == Dav_Resource::STATUS_DELETE) {
+            $sourceList = $sourceBaseResource->getChildren();
+            if (empty($sourceList)) {
                 return ['code' => 404];
             }
-            $isLocked = $sourceBaseResource->checkLocked();
-            if ($isLocked && !in_array($sourceBaseResource->lockedInfo['locktoken'], $this->arrInput['Token'])) {
-                return ['code' => 423];
-            }
-            if (isset($arrInput['overwrite']) && $this->arrInput['Overwrite'] == 'F') {
-                return ['code' => 412];
-            }
-            $destResource = rtrim($this->arrInput['Destination'], '/');
-            $objDestResource = Dav_Resource::getInstance($destResource);
-            if ($objDestResource->status == Dav_Resource::STATUS_FAILED) {
-                return ['code' => 503];
-            }
-            if (substr($_REQUEST['HEADERS']['Path'], -1) == '*') {
-                if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type != Dao_ResourceProp::MIME_TYPE_DIR) {
-                    return ['code' => 412];
+            $arrResponse = [];
+            foreach ($sourceList as $path => $objSource) {
+                $childDest = $destResourceName . DIRECTORY_SEPARATOR . basename($path);
+                if (true === $this->canMove($objSource, $childDest)) {
+                    $arrResponse[] = $objSource->move($childDest);
                 }
-                $sourceList = $sourceBaseResource->getChildren();
-                if (empty($sourceList)) {
-                    return ['code' => 404];
-                }
-                $arrResponse = [];
-                foreach ($sourceList as $path => $objSource) {
-                    $childDest = $destResource . DIRECTORY_SEPARATOR . basename($path);
-                    if (true === $this->canMove($objSource, $childDest)) {
-                        $arrResponse[] = $objSource->move($childDest);
-                    }
-                }
-                return $arrResponse;
             }
-            if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR) {
-                $destResource = $destResource . DIRECTORY_SEPARATOR . basename($_REQUEST['HEADERS']['Resource']);
-            }
-            if (false === $this->canMove($sourceBaseResource, $destResource)) {
-                return ['code' => 412];
-            }
-            $response = $sourceBaseResource->move($destResource);
-            if ($response['code'] == 201) {
-                $response['headers'] = ['Location: ' . Dav_Utils::href_encode($destResource)];
-            }
-            return $response;
-        } catch (Exception $e) {
-            $code = $e->getCode();
-            $msg = $e->getMessage();
-            if (!isset(Dav_Status::$Msg[$code]) || Dav_Status::$Msg[$code] != $msg) {
-                $code = 503;
-            }
-            return ['code' => $code];
+            return $arrResponse;
         }
+        $destResource = $destResourceName;
+        if ($objDestResource->status == Dav_Resource::STATUS_NORMAL && $objDestResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR && substr($this->arrInput['Destination'], -1) === '/') {
+            $destResource = $destResourceName . DIRECTORY_SEPARATOR . basename($_REQUEST['HEADERS']['Resource']);
+        }
+        if (false === $this->canMove($sourceBaseResource, $destResource)) {
+            return ['code' => 412];
+        }
+        $response = $sourceBaseResource->move($destResource);
+        if ($response['code'] == 201) {
+            $response['headers'] = ['Location: ' . Dav_Utils::href_encode($destResource)];
+        }
+        return $response;
     }
 
     /**
@@ -77,7 +65,11 @@ class Method_Move extends Dav_Method
      */
     private function canMove($objSourceResource, $destResource)
     {
-        $objDestResource = Dav_Resource::getInstance($destResource);
+        $isLocked = $objSourceResource->checkLocked();
+        if ($isLocked && !(isset($_SESSION['user']) && !in_array($_SESSION['user'], $objSourceResource->locked_info['owner'])) && !in_array($objSourceResource->locked_info['locktoken'], $this->arrInput['Token'])) {
+            throw new Exception(Dav_Status::$Msg[423], 423);
+        }
+        $objDestResource = Dav_Resource::getInstance($destResource, true);
         if ($objDestResource->status == Dav_Resource::STATUS_DELETE) {
             return true;
         }
@@ -87,17 +79,8 @@ class Method_Move extends Dav_Method
         if ($this->arrInput['Overwrite'] == 'F') {
             return false;
         }
-        if ($objSourceResource->content_type != $objDestResource->content_type) {
-            return false;
-        }
-        if ($objDestResource->content_type == Dao_ResourceProp::MIME_TYPE_DIR) {
-            $children = $objDestResource->getChildren();
-            if (count($children) > 0) {
-                return false;
-            }
-        }
         $isLocked = $objDestResource->checkLocked();
-        if ($isLocked && !in_array($objDestResource->lockedInfo['locktoken'], $this->arrInput['Token'])) {
+        if ($isLocked && !(isset($_SESSION['user']) && !in_array($_SESSION['user'], $objDestResource->locked_info['owner'])) && !in_array($objDestResource->lockedInfo['locktoken'], $this->arrInput['Token'])) {
             return false;
         }
         return true;
@@ -115,6 +98,9 @@ class Method_Move extends Dav_Method
         $destination = rtrim(Dav_Utils::href_decode($_REQUEST['HEADERS']['Destination']), '*');
         if (empty($destination)) {
             throw new Exception(Dav_Status::$Msg['412'], 412);
+        }
+        if (substr($destination, 0, 4) == 'http') {
+            $destination = Dav_Utils::href_decode($destination);
         }
         $this->arrInput = [
             'Destination' => $destination,

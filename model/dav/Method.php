@@ -33,8 +33,11 @@ abstract class Dav_Method
             $response = ['code' => 422];
         } else {
             try {
+                Dav_Db::beginTransaction();
                 $response = $this->handler();
+                Dav_Db::commit();
             } catch (Exception $e) {
+                Dav_Db::rollback();
                 $code = $e->getCode();
                 $msg = $e->getMessage();
                 if (!isset(Dav_Status::$Msg[$code]) || $msg != Dav_Status::$Msg[$code]) {
@@ -53,11 +56,7 @@ abstract class Dav_Method
             }
             if (isset($response['body'])) {
                 if (is_array($response['body'])) {
-                    $xmlDoc = new DOMDocument('1.0', 'UTF-8');
-                    $xmlDoc->formatOutput = true;
-                    $element = Dav_Utils::xml_encode($xmlDoc, $response['body']);
-                    $xmlDoc->appendChild($element);
-                    $response['body'] = trim($xmlDoc->saveXML());
+                    $response['body'] = Dav_Utils::xml_encode($response['body']);
                 }
                 $response['header'][] = 'Content-Length: ' . strlen($response['body']);
             } else {

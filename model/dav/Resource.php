@@ -74,8 +74,7 @@ class Dav_Resource
         if (isset($this->$name)) {
             return $this->$name;
         }
-        $value = $this->getPropValue($name);
-        return $value;
+        return $this->getPropValue($name);
     }
 
     /**
@@ -84,27 +83,31 @@ class Dav_Resource
      * @return mixed
      * @throws Exception
      */
-    public static function getInstance($resourcePath = null)
+    public static function getInstance($resourcePath = null, $renew = false)
     {
-        $renew = false;
         if (empty($resourcePath)) {
             $resourcePath = $_REQUEST['HEADERS']['Resource'];
             $renew = true;
         }
         if ($renew || empty(self::$arrInstances[$resourcePath]) || !(self::$arrInstances[$resourcePath] instanceof self)) {
+            clearstatcache(true, $resourcePath);
             if (!file_exists($resourcePath)){
                 $info = ['status' => self::STATUS_DELETE];
-            } else {
-                $objDaoDavResource = Dao_DavResource::getInstance();
-                $info = $objDaoDavResource->getResourceConf($resourcePath);
-                if (empty($info)) {
-                    $info = ['status' => self::STATUS_FAILED];
-                } else {
-                    $info['status'] = self::STATUS_NORMAL;
-                    $info['is_collection'] = $info['content_type'] == Dao_ResourceProp::MIME_TYPE_DIR;
+                if (isset(self::$arrInstances[$resourcePath]) && (self::$arrInstances[$resourcePath] instanceof self)) {
+                    self::$arrInstances[$resourcePath]->remove();
+                    unset(self::$arrInstances[$resourcePath]);
                 }
-                $info['path'] = $resourcePath;
+                return new self($info);
             }
+            $objDaoDavResource = Dao_DavResource::getInstance();
+            $info = $objDaoDavResource->getResourceConf($resourcePath, $renew);
+            if (empty($info)) {
+                $info = ['status' => self::STATUS_FAILED];
+            } else {
+                $info['status'] = self::STATUS_NORMAL;
+                $info['is_collection'] = $info['content_type'] == Dao_ResourceProp::MIME_TYPE_DIR;
+            }
+            $info['path'] = $resourcePath;
             self::$arrInstances[$resourcePath] = new self($info);
         }
         return self::$arrInstances[$resourcePath];
@@ -119,6 +122,7 @@ class Dav_Resource
     {
         $this->updateChildrenCollect();
         $arrResources = $this->objDaoDavResource->getChildrenConfById($this->id);
+        $this->children = [];
         foreach ($arrResources as $info) {
             self::$arrInstances[$info['path']] = self::getInstance($info['path']);
             $this->children[$info['path']] = &self::$arrInstances[$info['path']];
@@ -145,8 +149,7 @@ class Dav_Resource
                 $conditions[] = '((' . implode(') OR (', $prop) . '))';
             }
         }
-        $arrProp = $this->objDaoResourceProp->getProperties($fields, $conditions);
-        return $arrProp;
+        return $this->objDaoResourceProp->getProperties($fields, $conditions);
     }
 
     /**
@@ -173,87 +176,76 @@ class Dav_Resource
                 'modified'     => date('Y-m-d H:i:s', $item->last_modified)
             ];
         }
-        $collectViewHtml = include TEMPLATE_COLLECT_VIEW;
-        return $collectViewHtml;
+        return include TEMPLATE_COLLECT_VIEW;
     }
 
     /**
      * 资源加锁
-     * @param array $appInfo 加锁申请信息
+     * @param array $applyInfo 加锁申请信息
      * @return array
      */
     public function lock(array $applyInfo)
     {
-        try {
-            $lockToken = '';
-            $lockedInfoList = $this->objDaoDavResource->getLockedInfo($this->path, $this->level_no);
-            $applyInfo['lock_time'] = time();
+        $lockToken = '';
+        $lockedInfoList = $this->objDaoDavResource->getLockedInfo($this->path, $this->level_no);
+        $applyInfo['lock_time'] = time();
+        if (!empty($lockedInfoList['active'])) {
+            if (empty($applyInfo['locktoken'])) {
+                return ['code' => 423, 'path' => $this->path];
+            }
+            foreach ($lockedInfoList as $id => $lockedInfo) {
+                if (!in_array($lockedInfo['locktoken'], $applyInfo['locktoken']) || ($applyInfo['lockscope'] != 'shared' && $applyInfo['owner'] != $lockedInfo['owner'])) {
+                    return ['code' => 423, 'path' => $this->path];
+                }
+                if ($applyInfo['lockscope'] == 'shared') {
+                    $applyInfo['owner'] = array_merge($applyInfo['owner'], $lockedInfo['owner']);
+                }
+                $lockToken = $lockedInfo['locktoken'];
+            }
+            sort($applyInfo['owner']);
+        }
+        $setLockList = [];
+        $invalidLockResourceIds = [];
+        if (!empty($lockedInfoList['invalid'])) {
+            $invalidLockResourceIds = $lockedInfoList['invalid'];
+        }
+        if ($this->content_type == Dao_DavResource::TYPE_DIRECTOR && (!isset($applyInfo['depth']) || $applyInfo['depth'] != 0)) {
+            $maxLevel = isset($applyInfo['depth']) && is_numeric($applyInfo['depth']) ? $this->level_no + $applyInfo['depth'] : 0;
+            $lockedInfoList = $this->objDaoDavResource->getItemLockedInfos($this->path, $maxLevel);
             if (!empty($lockedInfoList['active'])) {
                 if (empty($applyInfo['locktoken'])) {
                     return ['code' => 423, 'path' => $this->path];
                 }
-                foreach ($lockedInfoList as $id => $lockedInfo) {
-                    if (!in_array($lockedInfo['locktoken'], $applyInfo['locktoken']) || ($applyInfo['lockscope'] != 'shared' && $applyInfo['owner'] != $lockedInfo['owner'])) {
-                        return ['code' => 423, 'path' => $this->path];
+                foreach ($lockedInfoList['active'] as $id => $lockedInfo) {
+                    if (!in_array($lockedInfo['locktoken'], $applyInfo['locktoken']) || ($applyInfo['owner'] != $lockedInfo['owner'] && ($lockedInfo['lockscope'] != 'shared' || $applyInfo['lockscope'] != 'shared'))) {
+                        return ['code' => 412, 'path' => $lockedInfo['path']];
                     }
                     if ($applyInfo['lockscope'] == 'shared') {
-                        $applyInfo['owner'] = array_merge($applyInfo['owner'], $lockedInfo['owner']);
+                        $lockedInfo['owner'] = array_merge($lockedInfo['owner'], $applyInfo['owner']);
+                        sort($lockedInfo);
+                    } else {
+                        $lockedInfo = $applyInfo;
                     }
                     $lockToken = $lockedInfo['locktoken'];
+                    $setLockList[$id] = $lockedInfo;
                 }
-                sort($applyInfo['owner']);
             }
-            $setLockList = [];
-            $invalidLockResourceIds = [];
             if (!empty($lockedInfoList['invalid'])) {
-                $invalidLockResourceIds = $lockedInfoList['invalid'];
-            }
-            if ($this->content_type == Dao_DavResource::TYPE_DIRECTOR && (!isset($applyInfo['depth']) || $applyInfo['depth'] != 0)) {
-                $maxLevel = isset($applyInfo['depth']) && is_numeric($applyInfo['depth']) ? $this->level_no + $applyInfo['depth'] : 0;
-                $lockedInfoList = $this->objDaoDavResource->getItemLockedInfos($this->path, $maxLevel);
-                if (!empty($lockedInfoList['active'])) {
-                    if (empty($applyInfo['locktoken'])) {
-                        return ['code' => 423, 'path' => $this->path];
-                    }
-                    foreach ($lockedInfoList['active'] as $id => $lockedInfo) {
-                        if (!in_array($lockedInfo['locktoken'], $applyInfo['locktoken']) || ($applyInfo['owner'] != $lockedInfo['owner'] && ($lockedInfo['lockscope'] != 'shared' || $applyInfo['lockscope'] != 'shared'))) {
-                            return ['code' => 412, 'path' => $lockedInfo['path']];
-                        }
-                        if ($applyInfo['lockscope'] == 'shared') {
-                            $lockedInfo['owner'] = array_merge($lockedInfo['owner'], $applyInfo['owner']);
-                            sort($lockedInfo);
-                        } else {
-                            $lockedInfo = $applyInfo;
-                        }
-                        $lockToken = $lockedInfo['locktoken'];
-                        $setLockList[$id] = $lockedInfo;
-                    }
-                }
-                if (!empty($lockedInfoList['invalid'])) {
-                    $invalidLockResourceIds = array_merge($invalidLockResourceIds, $lockedInfoList['invalid']);
-                }
-            }
-            if (!empty($this->locked_info['locktoken'])) {
-                $applyInfo['locktoken'] = $this->locked_info['locktoken'];
-            } else {
-                $applyInfo['locktoken'] = empty($lockToken) ? $this->createLockToken() : $lockToken;
-            }
-            $_SESSION['LOCK_TOKEN'][$this->id] = $applyInfo['locktoken'];
-            $setLockList[$this->id] = $applyInfo;
-            $res = $this->objDaoDavResource->setResourcesLockinfo($setLockList);
-            if ($res) {
-                $response = ['code' => 200, 'locked_info' => $applyInfo];
-            }
-            if (!empty($invalidLockResourceIds)) {
-                $this->objDaoDavResource->freeResourcesLock($invalidLockResourceIds);
-            }
-        } catch (Exception $e) {
-            Dav_Log::error($e);
-            if (empty($response)) {
-                $response = ['code' => 503, 'path' => $this->path];
+                $invalidLockResourceIds = array_merge($invalidLockResourceIds, $lockedInfoList['invalid']);
             }
         }
-        return $response;
+        if (!empty($this->locked_info['locktoken'])) {
+            $applyInfo['locktoken'] = $this->locked_info['locktoken'];
+        } else {
+            $applyInfo['locktoken'] = empty($lockToken) ? $this->createLockToken() : $lockToken;
+        }
+        $_SESSION['LOCK_TOKEN'][$this->id] = $applyInfo['locktoken'];
+        $setLockList[$this->id] = $applyInfo;
+        $this->objDaoDavResource->setResourcesLockinfo($setLockList);
+        if (!empty($invalidLockResourceIds)) {
+            $this->objDaoDavResource->freeResourcesLock($invalidLockResourceIds);
+        }
+        return ['code' => 200, 'locked_info' => $applyInfo];
     }
 
     /**
@@ -282,26 +274,14 @@ class Dav_Resource
      */
     public function remove()
     {
-        try {
-            $res = Dav_PhyOperation::removePath($_REQUEST['HEADERS']['Path']);
-            if ($res) {
-                $this->objDaoDavResource->removePathRecord($_REQUEST['HEADERS']['Path']);
-                unset(self::$arrInstances[$_REQUEST['HEADERS']['Path']]);
-                if ($this->is_collection) {
-                    $len = strlen($_REQUEST['HEADERS']['Path']);
-                    foreach (self::$arrInstances as $path => $info) {
-                        if (strncmp($path, $_REQUEST['HEADERS']['Path'], $len)==0){
-                            unset(self::$arrInstances[$path]);
-                        }
-                    }
-                }   
+        $this->objDaoDavResource->removePathRecord($_REQUEST['HEADERS']['Path']);
+        Dav_PhyOperation::removePath($_REQUEST['HEADERS']['Path']);
+        if ($this->is_collection && !empty($this->children)) {
+            foreach ($this->children as $path => $info) {
+                unset(self::$arrInstances[$path]);
             }
-            return $res;
-        } catch (Exception $e) {
-            $log = 'fatal delete a dir resource :' . $this->path . '. File' . $e->getFile() . ':' . $e->getLine() . '; msg:' . $e->getMessage();
-            Dav_Log::debug($log);
-            return false;
         }
+        unset(self::$arrInstances[$_REQUEST['HEADERS']['Path']]);
     }
 
     /**
@@ -352,24 +332,17 @@ class Dav_Resource
      */
     public function propPatch(array $propList)
     {
-        try {
-            $this->objDaoResourceProp->beginTransaction();
-            if (isset($propList['set'])) {
-                foreach ($propList['set'] as $prop) {
-                    $this->objDaoResourceProp->setResourceProp($this->id, $prop['prop_name'], $prop['prop_value'], $prop['ns_id']);
-                }
+        if (isset($propList['set'])) {
+            foreach ($propList['set'] as $prop) {
+                $this->objDaoResourceProp->setResourceProp($this->id, $prop['prop_name'], $prop['prop_value'], $prop['ns_id']);
             }
-            if (isset($propList['remove'])) {
-                foreach ($propList['remove'] as $prop) {
-                    $this->objDaoResourceProp->removeResourceProp($this->id, $prop['prop_name'], $prop['ns_id']);
-                }
-            }
-            $this->objDaoResourceProp->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->objDaoResourceProp->rollback();
-            return false;
         }
+        if (isset($propList['remove'])) {
+            foreach ($propList['remove'] as $prop) {
+                $this->objDaoResourceProp->removeResourceProp($this->id, $prop['prop_name'], $prop['ns_id']);
+            }
+        }
+        return true;
     }
 
     /**
@@ -384,6 +357,11 @@ class Dav_Resource
         return $content;
     }
 
+    /**
+     * @param $dataContent
+     * @param $contentType
+     * @return false|void
+     */
     public function putContent($dataContent, $contentType = 'text/plain')
     {
         $size = file_put_contents($this->path, $dataContent);
@@ -399,11 +377,8 @@ class Dav_Resource
      */
     public function copy($destination)
     {
-        $res = Dav_PhyOperation::copyResource($_REQUEST['HEADERS']['Path'], $destination);
-        if ($res) {
-            $this->objDaoDavResource->copy($_REQUEST['HEADERS']['Path'], $destination);
-        }
-        return $res;
+        $this->objDaoDavResource->copy($_REQUEST['HEADERS']['Path'], $destination);
+        return Dav_PhyOperation::copyResource($_REQUEST['HEADERS']['Path'], $destination);
     }
 
     /**
@@ -418,6 +393,7 @@ class Dav_Resource
         $response = ['code' => $objDestResource->status == self::STATUS_DELETE ? 201 : 204];
         $res = $this->objDaoDavResource->move($this->path, $destination, $this->content_type);
         if ($res) {
+            unset(self::$arrInstances[$this->path]);
             return $response;
         }
         return ['code' => 502];
@@ -432,8 +408,7 @@ class Dav_Resource
     public function getPropValue($propName, $nsId = NS_DAV_ID)
     {
         $propValue = $this->getPropFind(['prop_name', 'prop_value'], [$nsId => [$propName]]);
-        $propValue = isset($propValue[0]['prop_value']) ? $propValue[0]['prop_value'] : null;
-        return $propValue;
+        return isset($propValue[0]['prop_value']) ? $propValue[0]['prop_value'] : null;
     }
 
     /**
@@ -460,7 +435,7 @@ class Dav_Resource
             $arrResources = array_diff($arrResources, $arrChildren);
         }
         foreach ($arrResources as $k => $path) {
-            self::getInstance($path);
+            self::$arrInstances[$path] = self::getInstance($path);
             $this->children[$path] = &self::$arrInstances[$path];
         }
     }
@@ -472,7 +447,6 @@ class Dav_Resource
     private function createLockToken()
     {
         $sessionId = session_id();
-        $opaqueLockToken = $this->id . '-' . $sessionId . '-' . time();
-        return $opaqueLockToken;
+        return $this->id . '-' . $sessionId . '-' . time();
     }
 }

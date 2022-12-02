@@ -105,6 +105,11 @@ class Dav_Server
      */
     public static function save_data($path)
     {
-        return file_put_contents($path, self::get_body());
+        $inPut = fopen('php://input', 'r');
+        $save = fopen($path, 'w+');
+        $size = stream_copy_to_stream($inPut, $save);
+        fclose($inPut);
+        fclose($save);
+        return $size;
     }
 }

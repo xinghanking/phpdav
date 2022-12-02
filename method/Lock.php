@@ -22,7 +22,7 @@ class Method_Lock extends Dav_Method
      */
     protected function handler()
     {   
-        $objResource = Dav_Resource::getInstance($_REQUEST['HEADERS']['Resource']);
+        $objResource = Dav_Resource::getInstance();
         if (empty($objResource) || $objResource->status == Dav_Resource::STATUS_FAILED) {
             return ['code' => 503];
         }
@@ -38,18 +38,21 @@ class Method_Lock extends Dav_Method
             }
             $lockedInfo['owner'] = $owner;
             $data = [
-                'prop', [[
-                             'lockdiscovery', [[
-                                                   'activelock', [
+                'prop',
+                [[
+                    'lockdiscovery',
+                    [[
+                        'activelock',
+                        [
                             ['locktype', [[$lockedInfo['locktype']]]],
                             ['lockscope', [[$lockedInfo['lockscope']]]],
                             ['depth', $lockedInfo['depth']],
                             ['owner', $lockedInfo['owner']],
                             ['timeout', 'Second-' . $lockedInfo['timeout']],
                             ['locktoken', [['href', $lockedInfo['locktoken']]]],
-                        ],
-                                               ]],
-                         ]],
+                        ]
+                    ]]
+                ]]
             ];
             return ['code' => 200, 'body' => $data];
         }
@@ -57,18 +60,21 @@ class Method_Lock extends Dav_Method
             $data = [
                 'multistatus', [
                     [
-                        'response', [
-                        ['href', Dav_Utils::href_encode($arrResult['path'])],
-                        ['status', Dav_Status::$Msg[$arrResult['code']]],
-                    ]
+                        'response',
+                        [
+                            ['href', Dav_Utils::href_encode($arrResult['path'])],
+                            ['status', Dav_Status::$Msg[$arrResult['code']]]
+                        ]
                     ],
                     [
-                        'response', [[
-                                         'propstat', [
-                            ['prop', [['lockdiscovery']]],
-                            ['status', Dav_Status::$Msg[424]]
-                        ]
-                                     ]]
+                        'response',
+                        [[
+                            'propstat',
+                            [
+                                ['prop', [['lockdiscovery']]],
+                                ['status', Dav_Status::$Msg[424]]
+                            ]
+                        ]]
                     ]
                 ]
             ];

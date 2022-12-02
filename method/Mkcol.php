@@ -14,12 +14,10 @@ class Method_Mkcol extends Dav_Method
     protected function handler()
     {
         if (file_exists($_REQUEST['HEADERS']['Resource'])) {
-            $arrResponse = ['code' => 409];
-        } else {
-            $res = Dav_PhyOperation::createDir($_REQUEST['HEADERS']['Resource']);
-            $arrResponse = ['code' => false === $res ? 403 : 201];
+            return ['code' => 409];
         }
-        return $arrResponse;
+        Dav_PhyOperation::createDir($_REQUEST['HEADERS']['Resource']);
+        return ['code' => 201];
     }
 
     protected function getArrInput()

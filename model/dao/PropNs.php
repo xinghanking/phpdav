@@ -52,24 +52,16 @@ class Dao_PropNs extends Dav_Db
             }
         }
         $info = ['uri' => $uri, 'user_agent' => $_REQUEST['HEADERS']['User-Agent']];
-        try {
-            $this->beginTransaction();
-            $id = $this->replace($info);
-            if (isset($this->prefixDict[$id])) {
-                $prefix = $this->prefixDict[$id];
-            } else {
-                $num = count($this->prefixDict);
-                $prefix = $this->prefixDict[$id % $num - 1] . floor($id / $num);
-            }
-            $this->update(['`prefix`' => $prefix], ['`uri`=' => $uri]);
-            $this->commit();
-            self::$uriMap[$uri] = $id;
-            return $id;
-        } catch (Exception $e) {
-            $this->rollback();
-            Dav_Log::error($e);
-            throw new Exception($e->getMessage(), $e->getCode());
+        $id = $this->replace($info);
+        if (isset($this->prefixDict[$id])) {
+            $prefix = $this->prefixDict[$id];
+        } else {
+            $num = count($this->prefixDict);
+            $prefix = $this->prefixDict[$id % $num - 1] . floor($id / $num);
         }
+        $this->update(['prefix' => $prefix], ['`uri`=' => $uri]);
+        self::$uriMap[$uri] = $id;
+        return $id;
     }
 
     /**

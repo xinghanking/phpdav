@@ -3,7 +3,6 @@ class DavSession
 {
     protected static $_obj = null;
     protected static $_db = null;
-    private $cacheTime;
 
     /**
      * Sqlite_Db constructor.
@@ -14,15 +13,20 @@ class DavSession
             self::$_db = new SQLite3(':memory:');
             $sql = 'CREATE TABLE IF NOT EXISTS `dav_session`(`session_id` char(32) PRIMARY KEY NOT NULL,`session_info` text NOT NULL,`create_time` integer DEFAULT 0 NOT NULL COLLATE BINARY)';
             self::$_db->exec($sql);
-            $this->cacheTime = 60 * session_cache_expire();
+            if (in_array(session_status(), [PHP_SESSION_NONE, PHP_SESSION_ACTIVE])) {
+                session_commit();
+            }
+            session_set_save_handler([$this, 'open'], [$this, 'close'], [$this, 'read'], [$this, 'write'], [$this, 'destroy'], [$this, 'gc']);
+            session_start();
         }
     }
 
     /**
      * 调用
      */
-    public static function init(){
-        if(!(self::$_obj instanceof self)){
+    public static function init()
+    {
+        if (!(self::$_obj instanceof self)) {
             self::$_obj = new self();
         }
         self::$_obj->start();
@@ -31,37 +35,60 @@ class DavSession
     /**
      * 启动
      */
-    public function start() {
+    public function start()
+    {
         $sessionName = session_name();
-        $sessionId = session_id();
-        if (empty($_COOKIE[$sessionName])){
-            $_COOKIE[$sessionName] = md5($sessionId . getmypid() . microtime(true));
+        if (empty($_COOKIE[$sessionName])) {
+            $_COOKIE[$sessionName] = md5(session_id() . getmypid() . microtime(true));
+        }
+        if ($_COOKIE[$sessionName] != session_id()) {
+            session_commit();
             session_id($_COOKIE[$sessionName]);
-            $_SESSION = [];
-        } elseif($_COOKIE[$sessionName] != $sessionId){
-            $this->save();
-            session_id($_COOKIE[$sessionName]);
-            $lastTime = time() - $this->cacheTime;
-            $sql = "SELECT `session_info` FROM `dav_session` where `session_id`='" . $_COOKIE[$sessionName] . "' AND `create_time`>" . $lastTime;
-            $sessionInfo = self::$_db->querySingle($sql);
-            $_SESSION = empty($sessionInfo) ? [] : json_decode($sessionInfo, true);
+            session_start();
         }
     }
 
-    /**
-     *保存
-     */
-    public function save(){
-        $sessionInfo = json_encode($_SESSION);
-        $sql = "REPLACE INTO `dav_session`(`session_id`,`session_info`,`create_time`) values ('" . session_id() . "','" . $sessionInfo . "','" . time() . "')";
-        self::$_db->exec($sql);
+    private function open()
+    {
+        return true;
+    }
+
+    private function close()
+    {
+        return true;
+    }
+
+    private function read($sessionId)
+    {
+        $lastTime = time() - session_cache_expire() * 60;
+        $sql = "SELECT `session_info` FROM `dav_session` where `session_id`='" . $sessionId . "' AND `create_time`>" . $lastTime;
+        $sessionInfo = self::$_db->querySingle($sql);
+        return empty($sessionInfo) ? '' : $sessionInfo;
+    }
+
+    private function write($sessionId, $data)
+    {
+        $sql = "REPLACE INTO `dav_session`(`session_id`,`session_info`,`create_time`) values ('" . $sessionId . "','" . $data . "','" . time() . "')";
+        return self::$_db->exec($sql);
+    }
+
+    private function destroy($sessionId)
+    {
+        $sql = "DELETE FROM `dav_session` WHERE `session_id`='" . $sessionId . "'";
+        return self::$_db->exec($sql);
+    }
+
+    private function gc($maxTime)
+    {
+        $sql = 'DELETE FROM `dav_session` WHERE `create_time`<=' . (time() - $maxTime);
+        return self::$_db->exec($sql);
     }
 
     /**
      * clear
      */
-    public function __destruct(){
-        $sql = 'DELETE FROM `dav_session` WHERE `create_time`<=' . (time() - $this->cacheTime);
-        self::$_db->exec($sql);
+    public function __destruct()
+    {
+        return $this->gc(session_cache_expire() * 60);
     }
 }

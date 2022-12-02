@@ -19,43 +19,43 @@ class Dao_DavResource extends Dav_Db
 
     /**
      * @param string $path 资源地址
+     * @param $nocache
      * @return array|bool|null
+     * @throws Exception
      */
-    public function getResourceConf($path)
+    public function getResourceConf($path, $nocache = false)
     {
-        try {
-            $arrInfo = $this->getRow(['`id`', '`level_no`', '`locked_info`', '`path`', '`content_type`', '`content_length`', '`etag`', '`last_modified`', '`upper_id`'], ['`path`=' => $path]);
-            if (false === file_exists($path)) {
-                if (!empty($arrInfo['id'])) {
-                    $this->deleteResourceByPath([$path]);
-                }
-                return null;
+        $arrInfo = $this->getRow(['`id`', '`level_no`', '`locked_info`', '`path`', '`content_type`', '`content_length`', '`etag`', '`last_modified`', '`upper_id`'], ['`path`=' => $path]);
+        if (false === file_exists($path)) {
+            if (!empty($arrInfo['id'])) {
+                $this->removePathRecord([$path]);
             }
-            if (empty($arrInfo)) {
-                $dirName = dirname($path);
-                if ($dirName == $path) {
-                    $arrInfo = [
-                        'path'           => $path,
-                        'level_no'       => 1,
-                        'content_type'   => Dao_ResourceProp::MIME_TYPE_DIR,
-                        'content_length' => disk_total_space($path),
-                        'etag'           => '',
-                        'upper_id'       => 0
-                    ];
-                } else {
-                    $upperConf = $this->getResourceConf($dirName);
-                    if (empty($upperConf)) {
-                        return false;
-                    }
-                    $arrInfo = ['path' => $path, 'level_no' => $upperConf['level_no'] + 1, 'upper_id' => $upperConf['id']];
-                }
-            }
-            Dao_ResourceProp::getInstance()->upsertBaseProperties($arrInfo);
-            return $arrInfo;
-        } catch (Exception $e) {
-            Dav_Log::error($e, 'path=' . $path);
-            return false;
+            return null;
         }
+        if (empty($arrInfo)) {
+            $dirName = dirname($path);
+            if ($dirName == $path) {
+                $arrInfo = [
+                    'path'           => $path,
+                    'level_no'       => 1,
+                    'content_type'   => Dao_ResourceProp::MIME_TYPE_DIR,
+                    'content_length' => disk_total_space($path),
+                    'etag'           => '',
+                    'upper_id'       => 0
+                ];
+            } else {
+                $upperConf = $this->getResourceConf($dirName);
+                if (empty($upperConf)) {
+                    return false;
+                }
+                $arrInfo = ['path' => $path, 'level_no' => $upperConf['level_no'] + 1, 'upper_id' => $upperConf['id']];
+            }
+            $nocache = true;
+        }
+        if ($nocache) {
+            Dao_ResourceProp::getInstance()->upsertBaseProperties($arrInfo);
+        }
+        return $arrInfo;
     }
 
     /**
@@ -96,7 +96,7 @@ class Dao_DavResource extends Dav_Db
                 }
             }
         }
-        return $lockedInfo;
+        return $lockedInfoList;
     }
 
     /**
@@ -144,33 +144,26 @@ class Dao_DavResource extends Dav_Db
      */
     public function setResourcesLockinfo(array $lockInfoList)
     {
-        try {
-            $objResourceProp = Dao_ResourceProp::getInstance();
-            $this->beginTransaction();
-            foreach ($lockInfoList as $resourceId => $lockInfo) {
-                $value = json_encode($lockInfo, JSON_UNESCAPED_UNICODE);
-                $this->update(['locked_info' => $value], ['`id`=' => $resourceId]);
-                $ownerList = [];
-                foreach ($lockInfo['owner'] as $owner) {
-                    $ownerList[] = ['href', $owner];
-                }
-                $value = [[
-                              'activelock',
-                              [
-                                  ['lockscope', [[$lockInfo['lockscope']]]],
-                                  ['locktype', [[$lockInfo['locktype']]]],
-                                  ['depth', $lockInfo['depth']],
-                                  ['owner', $ownerList],
-                                  ['timeout', 'Second-' . $lockInfo['timeout']],
-                                  ['locktoken', [['href', $lockInfo['locktoken']]]],
-                              ],
-                          ]];
-                $objResourceProp->setResourceProp($resourceId, 'lockdiscovery', $value);
+        $objResourceProp = Dao_ResourceProp::getInstance();
+        foreach ($lockInfoList as $resourceId => $lockInfo) {
+            $value = json_encode($lockInfo, JSON_UNESCAPED_UNICODE);
+            $this->update(['locked_info' => $value], ['`id`=' => $resourceId]);
+            $ownerList = [];
+            foreach ($lockInfo['owner'] as $owner) {
+                $ownerList[] = ['href', $owner];
             }
-            $this->commit();
-        } catch (Exception $e) {
-            $this->rollback();
-            return false;
+            $value = [[
+                'activelock',
+                [
+                    ['lockscope', [[$lockInfo['lockscope']]]],
+                    ['locktype', [[$lockInfo['locktype']]]],
+                    ['depth', $lockInfo['depth']],
+                    ['owner', $ownerList],
+                    ['timeout', 'Second-' . $lockInfo['timeout']],
+                    ['locktoken', [['href', $lockInfo['locktoken']]]],
+                ],
+            ]];
+            $objResourceProp->setResourceProp($resourceId, 'lockdiscovery', $value);
         }
         return true;
     }
@@ -183,22 +176,15 @@ class Dao_DavResource extends Dav_Db
      */
     public function freeResourcesLock(array $resourceIds)
     {
-        try {
-            $objResourceProp = Dao_ResourceProp::getInstance();
-            $this->beginTransaction();
-            $this->update(['locked_info' => ''], ['`id` IN' => $resourceIds]);
-            $conditions = [
-                '`prop_name`='     => 'lockdiscovery',
-                '`ns_id`='         => NS_DAV_ID,
-                '`resource_id` IN' => $resourceIds
-            ];
-            $objResourceProp->update(['prop_value' => '[null]'], $conditions);
-            $this->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->rollback();
-            return false;
-        }
+        $objResourceProp = Dao_ResourceProp::getInstance();
+        $this->update(['locked_info' => ''], ['`id` IN' => $resourceIds]);
+        $conditions = [
+            '`prop_name`='     => 'lockdiscovery',
+            '`ns_id`='         => NS_DAV_ID,
+            '`resource_id` IN' => $resourceIds
+        ];
+        $objResourceProp->update(['prop_value' => '[null]'], $conditions);
+        return true;
     }
 
     /**
@@ -235,43 +221,14 @@ class Dao_DavResource extends Dav_Db
      */
     public function deleteResourceByPath(array $pathList)
     {
-        try {
-            if (count($pathList) == 1) {
-                $path = current($pathList);
-                $res = true;
-                if (is_file($path)) {
-                    $res = unlink($path);
-                } elseif (is_dir($path)) {
-                    exec('rm -fr ' . $path, $msg, $status);
-                    $res = 0 === $status;
-                }
-                if (false === $res) {
-                    throw new Exception('faltal delete resource', 403);
-                }
-                return true;
+        foreach ($pathList as $path) {
+            $res = Dav_PhyOperation::removePath($path);
+            if (false === $res) {
+                throw new Exception('fatal delete resource', 403);
             }
-            $resourceList = $pathList;
-            $this->beginTransaction();
-            foreach ($pathList as $k => $path) {
-                $pathList[$k] = "`path`='" . $path . "' OR `path` LIKE '" . $path . "/%'";
-            }
-            $strWhere = implode(' OR ', $pathList);
-            $conditions = ['`resource_id` IN (SELECT `id` FROM ' . $this->_tbl . ' WHERE ' . $strWhere . ')'];
-            Dao_ResourceProp::getInstance()->delete($conditions);
-            $this->delete([$strWhere]);
-            foreach ($resourceList as $path) {
-                $res = Dav_PhyOperation::removePath($path);
-                if (false === $res) {
-                    throw new Exception('faltal delete resource', 403);
-                }
-            }
-            $this->commit();
-            return true;
-        } catch (Exception $e) {
-            $this->rollback();
-            Dav_Log::error($e);
-            throw new Exception($e->getMessage(), $e->getCode());
         }
+        $this->removePathRecord($pathList);
+        return true;
     }
 
     /**
@@ -283,23 +240,18 @@ class Dao_DavResource extends Dav_Db
     public function removePathRecord($pathInfo)
     {
         $pathList = is_string($pathInfo) ? [$pathInfo] : $pathInfo;
-        try {
-            $this->beginTransaction();
-            foreach ($pathList as $resourcePath) {
-                if (substr($resourcePath, -1) == '*') {
-                    $strWhere = "`path` LIKE '" . substr($resourcePath, 0, -1) . "%'";
-                } else {
-                    $strWhere = "`path` ='" . $resourcePath . "' OR `path` LIKE '" . $resourcePath . "/%'";
+        foreach ($pathList as $resourcePath) {
+            if (substr($resourcePath, -1) == '*') {
+                $strWhere = "`path` LIKE '" . substr($resourcePath, 0, -1) . "%'";
+            } else {
+                $strWhere = "`path` ='" . $resourcePath . "'";
+                if (is_dir($resourcePath)) {
+                    $strWhere .= " OR `path` LIKE '" . $resourcePath . "/%'";
                 }
-                $this->delete([$strWhere]);
-                $conditions = ['`resource_id` IN (SELECT `id` FROM ' . $this->_tbl . ' WHERE ' . $strWhere . ')'];
-                Dao_ResourceProp::getInstance()->delete($conditions);
             }
-            $this->commit();
-        } catch (Exception $e) {
-            $this->rollback();
-            Dav_Log::error($e);
-            return false;
+            $conditions = ['`resource_id` IN (SELECT `id` FROM ' . $this->_tbl . ' WHERE ' . $strWhere . ')'];
+            Dao_ResourceProp::getInstance()->delete($conditions);
+            $this->delete([$strWhere]);
         }
         return true;
     }
@@ -318,7 +270,10 @@ class Dao_DavResource extends Dav_Db
             $sourcepath = dirname($sourcepath);
         } else {
             $sourcepath = rtrim($sourcepath, '/');
-            $strWheres = "`path`='" . $sourcepath . "' OR `path` LIKE '" . $sourcepath . "/%'";
+            $strWheres = "`path`='" . $sourcepath . "'";
+            if (is_dir($sourcepath)) {
+                $strWheres .= " OR `path` LIKE '" . $sourcepath . "/%'";
+            }
         }
         $destPathConf = $this->getResourceConf($destination);
         if (empty($destPathConf)) {
@@ -328,12 +283,14 @@ class Dao_DavResource extends Dav_Db
                 $Id = $this->createResource(['path' => $upperPath, 'content_type' => Dao_ResourceProp::MIME_TYPE_DIR]);
                 $pathIds = [$upperPath => $Id];
             } else {
-                $pathIds = [$upperInfo['path'] => $upperInfo['id']];
+                $pathIds = [$upperPath => $upperInfo['id']];
             }
         } else {
             if ($destPathConf['content_type'] == Dao_ResourceProp::MIME_TYPE_DIR) {
                 $pathIds = [$destPathConf['path'] => $destPathConf['id']];
-                $destination .= DIRECTORY_SEPARATOR . basename($sourcepath);
+                if (substr($sourcepath, -1) != '*') {
+                    $destination .= DIRECTORY_SEPARATOR . basename($sourcepath);
+                }
             } else {
                 $pathIds = [dirname($destPathConf['path']) => $destPathConf['upper_id']];
             }
@@ -365,39 +322,30 @@ class Dao_DavResource extends Dav_Db
      */
     public function move($sourceResource, $destination, $contentType = '')
     {
-        try {
-            $this->beginTransaction();
-            $destPathConf = $this->getResourceConf($destination);
-            if (empty($destPathConf)) {
-                $upperPath = dirname($destination);
-                $upperInfo = $this->getResourceConf($upperPath);
-                if (empty($upperInfo)) {
-                    $upperId = $this->createResource(['path' => $upperPath, 'content_type' => Dao_ResourceProp::MIME_TYPE_DIR]);
-                } else {
-                    $upperId = $upperInfo['id'];
-                }
+        $destPathConf = $this->getResourceConf($destination);
+        if (empty($destPathConf)) {
+            $upperPath = dirname($destination);
+            $upperInfo = $this->getResourceConf($upperPath);
+            if (empty($upperInfo)) {
+                $upperId = $this->createResource(['path' => $upperPath, 'content_type' => Dao_ResourceProp::MIME_TYPE_DIR]);
             } else {
-                $upperId = $destPathConf['upper_id'];
-                $this->delete(['id=' . $destPathConf['id']]);
+                $upperId = $upperInfo['id'];
             }
-            $this->update(['path' => $destination, 'upper_id' => $upperId], ['`path`=' => $sourceResource]);
-            if ($contentType == Dao_ResourceProp::MIME_TYPE_DIR) {
-                $pathInfoList = $this->select('`id`, `path`', ['WHERE' => "`path` LIKE '" . $sourceResource . DIRECTORY_SEPARATOR . "%'"]);
-                foreach ($pathInfoList as $info) {
-                    $path = $destination . DIRECTORY_SEPARATOR . substr($info['path'], strlen($sourceResource));
-                    $this->update(['path' => $path], ['id=' . $info['id']]);
-                }
-            }
-            $res = Dav_PhyOperation::move($sourceResource, $destination);
-            if ($res) {
-                $this->commit();
-                return true;
-            }
-        } catch (Exception $e) {
-            Dav_Log::debug($e);
+        } else {
+            $upperId = $destPathConf['upper_id'];
+            $this->delete(['`id`=' . $destPathConf['id'] . ($contentType == Dao_ResourceProp::MIME_TYPE_DIR ? " OR `path` LIKE '" . $destination . DIRECTORY_SEPARATOR . "%‘" : '')]);
         }
-        $this->rollback();
-        return false;
+        $this->update(['`path`' => $destination, '`upper_id`' => $upperId], ['`path`=' => $sourceResource]);
+        $this->getResourceConf($destination, true);
+        if ($contentType == Dao_ResourceProp::MIME_TYPE_DIR) {
+            $pathInfoList = $this->select('`id`, `path`', ['WHERE' => "`path` LIKE '" . $sourceResource . DIRECTORY_SEPARATOR . "%'"]);
+            foreach ($pathInfoList as $info) {
+                $path = $destination . substr($info['path'], strlen($sourceResource));
+                $this->update(['path' => $path], ['id=' . $info['id']]);
+            }
+        }
+        Dav_PhyOperation::move($sourceResource, $destination);
+        return true;
     }
 
     /**
@@ -409,7 +357,6 @@ class Dao_DavResource extends Dav_Db
     {
         $fields = ['id', 'path', 'content_type', 'content_length', 'etag', 'last_modified', 'upper_id'];
         $condtions = ['`upper_id`=' . $id];
-        $arrResources = $this->select($fields, $condtions);
-        return $arrResources;
+        return $this->select($fields, $condtions);
     }
 }

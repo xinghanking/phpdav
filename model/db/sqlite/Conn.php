@@ -69,14 +69,14 @@ class Db_Sqlite_Conn
             $mirSeconds = 0;
             $count = 0;
             while (false == $objRes && $count < 3) {
+                ++$count;
                 $microSeconds = rand($mirSeconds, $count * 1000000);
                 usleep($microSeconds);
                 $objRes = self::$_db->query($sql);
-                ++$count;
             }
-        }
-        if (false === $objRes) {
-            throw new Exception('fail execute query sql，sql:' . $sql);
+            if (false === $objRes) {
+                throw new Exception('fail execute query sql，sql:' . $sql);
+            }
         }
         $arrRes = [];
         while ($row = $objRes->fetchArray(SQLITE3_ASSOC)) {
@@ -97,10 +97,10 @@ class Db_Sqlite_Conn
             $count = 0;
             $microSeconds = 0;
             while (false === $row && $count < 3) {
+                ++$count;
                 $microSeconds = rand($microSeconds, $count * 1000000);
                 usleep($microSeconds);
                 $row = self::$_db->querySingle($sql, true);
-                ++$count;
             }
             if (false === $row) {
                 throw new Exception('执行sql语句失败，sql:' . $sql);
@@ -121,10 +121,10 @@ class Db_Sqlite_Conn
             $count = 0;
             $microSeconds = 0;
             while (false === $column && $count < 3) {
+                ++$count;
                 $microSeconds = rand($microSeconds, $count * 1000000);
                 usleep($microSeconds);
                 $column = self::$_db->querySingle($sql);
-                ++$count;
             }
             if (false === $column) {
                 throw new Exception('执行sql语句失败，sql:' . $sql);
@@ -187,11 +187,11 @@ class Db_Sqlite_Conn
         if (false === $res) {
             $mirSeconds = 0;
             $count = 0;
-            while (false == $res && $count < 3) {
-                $microSeconds = rand($mirSeconds, $count * 1000000);
-                usleep($microSeconds);
-                $res = self::$_db->exec($sql);
+            while (false === $res && $count < 9) {
                 ++$count;
+                $microSeconds = rand($mirSeconds, $count * 1000000);
+                sleep($microSeconds);
+                $res = self::$_db->exec($sql);
             }
             if (false === $res) {
                 throw new Exception('执行sql语句失败，sql:' . $sql);

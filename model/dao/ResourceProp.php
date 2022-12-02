@@ -31,7 +31,7 @@ class Dao_ResourceProp extends Dav_Db
             'displayname'    => $_REQUEST['HEADERS']['Base-Name'],
             'resourcetype'   => '',
             'getcontenttype' => self::MIME_TYPE_DIR,
-            'getetag'        => '',
+            'getetag'        => ''
         ];
         $atime = time();
         $mtime = empty($info['last_modified']) ? $atime : $info['last_modified'];
@@ -42,15 +42,15 @@ class Dao_ResourceProp extends Dav_Db
             $mtime = empty($arrStatList['mtime']) ? max($atime, $mtime) : intval($arrStatList['mtime']);
             $ctime = min($ctime, $mtime);
         }
-        if (is_file($info['path'])) {
-            $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
-            $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
-        } else {
+        if (is_dir($info['path'])) {
             if (strcmp($info['path'], $_REQUEST['DOCUMENT_ROOT']) >= 0) {
                 $arrProperties['getcontentlength'] = Dav_PhyOperation::getDirSize($info['path']);
             } else {
                 $arrProperties['getcontentlength'] = disk_total_space($_REQUEST['DOCUMENT_ROOT']);
             }
+        } else {
+            $arrProperties['getcontenttype'] = self::getFileMimeType($info['path']);
+            $arrProperties['getcontentlength'] = empty($arrStatList['size']) ? 0 : $arrStatList['size'];
         }
         $info['content_length'] = $arrProperties['getcontentlength'];
         $arrProperties['getetag'] = dechex($arrProperties['getcontentlength']) . '-' . dechex($mtime);
@@ -68,40 +68,31 @@ class Dao_ResourceProp extends Dav_Db
         if (is_writable($info['path'])) {
             $arrProperties['supportedlock'] = [
                 ['lockentry', [['lockscope', [['exclusive']]], ['locktype', [['write']]]]],
-                ['lockentry', [['lockscope', [['shared']]], ['locktype', [['write']]]]],
+                ['lockentry', [['lockscope', [['shared']]], ['locktype', [['write']]]]]
             ];
         } else {
             $arrProperties['lockdiscovery'] = [['activelock', [['lockscope', [['exclusive']]], ['locktype', [['write']]], ['depth', 0]]]];
         }
-        try {
-            $this->beginTransaction();
-            if (empty($info['id'])) {
-                $info['id'] = Dao_DavResource::getInstance()->insert($info);
-                foreach ($arrProperties as $propName => $propValue) {
-                    $arrProp = [
-                        'ns_id'       => NS_DAV_ID,
-                        'resource_id' => $info['id'],
-                        'prop_name'   => $propName,
-                        'prop_value'  => self::value_encode($propValue),
-                    ];
-                    $this->insert($arrProp);
-                }
-            } else {
-                Dao_DavResource::getInstance()->update(['content_type' => $info['content_type'], 'content_length' => $info['content_length'], 'last_modified' => $info['last_modified'], '`etag`=' => $info['etag']], ['`id`=' => $info['id']]);
-                foreach ($arrProperties as $propName => $propValue) {
-                    $this->update(['prop_value' => self::value_encode($propValue)], [
-                        '`ns_id`='       => NS_DAV_ID,
-                        '`resource_id`=' => $info['id'],
-                        '`prop_name`='   => $propName,
-                    ]);
-                }
+        if (empty($info['id'])) {
+            $info['id'] = Dao_DavResource::getInstance()->insert($info);
+            foreach ($arrProperties as $propName => $propValue) {
+                $arrProp = [
+                    'ns_id'       => NS_DAV_ID,
+                    'resource_id' => $info['id'],
+                    'prop_name'   => $propName,
+                    'prop_value'  => self::value_encode($propValue),
+                ];
+                $this->insert($arrProp);
             }
-            $this->commit();
-        } catch (Exception $e) {
-            Dav_Log::error($e);
-            $this->rollback();
-            $info = false;
-            return false;
+        } else {
+            Dao_DavResource::getInstance()->update(['content_type' => $info['content_type'], 'content_length' => $info['content_length'], 'last_modified' => $info['last_modified'], 'etag' => $info['etag']], ['`id`=' => $info['id']]);
+            foreach ($arrProperties as $propName => $propValue) {
+                $this->update(['prop_value' => self::value_encode($propValue)], [
+                    '`ns_id`='       => NS_DAV_ID,
+                    '`resource_id`=' => $info['id'],
+                    '`prop_name`='   => $propName,
+                ]);
+            }
         }
         return true;
     }
@@ -121,7 +112,7 @@ class Dao_ResourceProp extends Dav_Db
             'resource_id' => $resourceId,
             'ns_id'       => $nsId,
             'prop_name'   => $propName,
-            'prop_value'  => self::value_encode($propValue),
+            'prop_value'  => self::value_encode($propValue)
         ];
         return $this->replace($resourceProp);
     }
@@ -139,7 +130,7 @@ class Dao_ResourceProp extends Dav_Db
         $conditions = [
             '`resource_id`=' . $resourceId,
             '`ns_id`=' . $nsId,
-            "`prop_name`='" . $propName . "'",
+            "`prop_name`='" . $propName . "'"
         ];
         return $this->delete($conditions);
     }
@@ -190,8 +181,7 @@ class Dao_ResourceProp extends Dav_Db
     public function getLockDiscovery($resourceId)
     {
         $lockDiscovery = $this->getColumn('prop_value', ['`ns_id`=' . NS_DAV_ID, '`resource_id`=' . $resourceId, "`prop_name`='lockdiscovery'"]);
-        $lockDiscovery = empty($lockDiscovery) ? [] : self::value_decode($lockDiscovery);
-        return $lockDiscovery;
+        return empty($lockDiscovery) ? [] : self::value_decode($lockDiscovery);
     }
 
     /**
@@ -291,7 +281,7 @@ class Dao_ResourceProp extends Dav_Db
                 $lockedInfo['locktoken'][$k] = ['href', $v];
             }
         }
-        $lockedValue = [
+        return [
             [
                 'activelock',
                 [
@@ -301,10 +291,9 @@ class Dao_ResourceProp extends Dav_Db
                     ['owner', $lockedInfo['owner']],
                     ['timeout', 'Second-' . $lockedInfo['timeout']],
                     ['locktoken', $lockedInfo['locktoken']],
-                ],
-            ],
+                ]
+            ]
         ];
-        return $lockedValue;
     }
 
     /**

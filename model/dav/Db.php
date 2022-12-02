@@ -22,11 +22,20 @@ abstract class Dav_Db
      */
     protected function __construct()
     {
+        self::conn();
+        $this->_sql['FROM'] = &$this->_tbl;
+        $this->init();
+    }
+
+    /**
+     * Sqlite_Db constructor.
+     * @throws Exception
+     */
+    private static function conn()
+    {
         if (!(self::$_db instanceof Db_Sqlite_Conn)) {
             self::$_db = Db_Sqlite_Conn::getInstance();
         }
-        $this->_sql['FROM'] = &$this->_tbl;
-        $this->init();
     }
 
     /**
@@ -98,11 +107,8 @@ abstract class Dav_Db
             }
         }
         foreach ($conditions as $k => $v) {
-            if (is_string($v)) {
+            if (!is_numeric($v) && !is_array($v)) {
                 $v = trim($v);
-                if (0 !== $v && empty($v)) {
-                    $v = '';
-                }
             }
             if (is_numeric($k)) {
                 $conditions[$k] = is_string($v) ? $v : self::getWhere($v);
@@ -136,8 +142,7 @@ abstract class Dav_Db
                 $sql[] = $k . ' ' . (is_array($v) ? implode(',', $v) : $v);
             }
         }
-        $sql = implode(' ', $sql);
-        return $sql;
+        return implode(' ', $sql);
     }
 
     /**
@@ -147,8 +152,7 @@ abstract class Dav_Db
      */
     public static function query($sql)
     {
-        $objRes = self::$_db->query($sql);
-        return $objRes;
+        return self::$_db->query($sql);
     }
 
     /**
@@ -173,8 +177,7 @@ abstract class Dav_Db
             $this->_sql['SELECT'] = is_array($fields) ? implode($fields) : $fields;
         }
         $sql = $this->getSql();
-        $arrRes = $this->query($sql);
-        return $arrRes;
+        return $this->query($sql);
     }
 
     /**
@@ -183,7 +186,7 @@ abstract class Dav_Db
      * @return array
      * @throws Exception
      */
-    public function getRow(array $fields = null, array $conditions = [])
+    public function getRow($fields = null, array $conditions = [])
     {
         if (!empty($fields)) {
             $this->_sql['SELECT'] = is_array($fields) ? implode(',', $fields) : $fields;
@@ -192,8 +195,7 @@ abstract class Dav_Db
             $this->getConditions($conditions);
         }
         $sql = $this->getSql();
-        $row = self::$_db->getRow($sql);
-        return $row;
+        return self::$_db->getRow($sql);
     }
 
     /**
@@ -211,16 +213,16 @@ abstract class Dav_Db
             $this->getConditions($conditions);
         }
         $sql = $this->getSql();
-        $column = self::$_db->getColumn($sql);
-        return $column;
+        return self::$_db->getColumn($sql);
     }
 
     /**
      * @return bool
      * @throws Exception
      */
-    public function beginTransaction()
+    public static function beginTransaction()
     {
+        self::conn();    
         return self::$_db->beginTransaction();
     }
 
@@ -228,7 +230,7 @@ abstract class Dav_Db
      * @return bool
      * @throws Exception
      */
-    public function commit()
+    public static function commit()
     {
         return self::$_db->commit();
     }
@@ -237,7 +239,7 @@ abstract class Dav_Db
      * @return bool
      * @throws Exception
      */
-    public function rollback()
+    public static function rollback()
     {
         return self::$_db->rollback();
     }

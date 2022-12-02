@@ -36,12 +36,12 @@ class Dav_PhyOperation
             } else {
                 exec('mkdir -p ' . $dirPath, $msg, $status);
             }
-            $res = 0 === $status;
+            if ($status !== 0) {
+                throw new Exception('fatal create dir.');
+            }
+            clearstatcache(true, $dirPath);
         }
-        if (false === $res) {
-            Dav_Log::debug($msg);
-        }
-        return $res;
+        return true;
     }
 
     /**
@@ -54,32 +54,31 @@ class Dav_PhyOperation
         try {
             $fds = basename($path);
             if ($fds == '*') {
-                $upperfd = dirname($path);
-                if (!file_exists($upperfd)) {
+                $fpath = dirname($path);
+                clearstatcache(true, $fpath);
+                if (!file_exists($fpath)) {
                     return true;
                 }
-                $fds = scandir($upperfd);
+                $fds = scandir($fpath);
                 $fds = array_diff($fds, ['.', '..']);
-                if (empty($fds)) {
-                    return true;
-                }
-                foreach ($fds as $fd) {
-                    $resource = $upperfd . DIRECTORY_SEPARATOR . $fd;
-                    if (false === self::removePath($resource)) {
-                        throw new Exception('Fatal delete a resource:' . $fd);
+                if (!empty($fds)) {
+                    foreach ($fds as $fd) {
+                        $resource = $fpath . DIRECTORY_SEPARATOR . $fd;
+                        if (false === self::removePath($resource)) {
+                            throw new Exception('Fatal delete a resource:' . $resource);
+                        }
                     }
                 }
                 return true;
             }
-            if (!file_exists($path)){
-               return true;
+            clearstatcache(true, $path);
+            if (!file_exists($path)) {
+                return true;
             }
             if (is_dir($path)) {
                 $childrenResources = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*';
-                $res = self::removePath($childrenResources);
-                if ($res) {
-                    $res = rmdir($path);
-                }
+                self::removePath($childrenResources);
+                $res = rmdir($path);
             } else {
                 $res = unlink($path);
             }
@@ -94,12 +93,12 @@ class Dav_PhyOperation
             } else {
                 exec('rm -fr ' . $path, $msg, $status);
             }
-            $res = 0 === $status;
-            if (false === $res) {
-                Dav_Log::error($e);
+            if ($status !== 0) {
+                throw new Exception('Fatal delete a resource:' . $path);
             }
         }
-        return $res;
+        clearstatcache(true, $path);
+        return true;
     }
 
     /**
@@ -112,22 +111,20 @@ class Dav_PhyOperation
     {
         $dPath = rtrim($dPath, '*');
         $res = copy($source, $dPath);
-        if (false == $res) {
+        if (!$res) {
             $source = escapeshellarg($source);
-            $dpath = escapeshellarg($dPath);
+            $dPath = escapeshellarg($dPath);
             if (PHP_OS == 'Windows') {
                 exec('copy ' . $source . ' ' . $dPath, $msg, $status);
             } else {
                 exec('cp -r ' . $source . ' ' . $dPath, $msg, $status);
             }
             if ($status !== 0) {
-                Dav_Log::debug($msg);
-                $res = false;
-            } else {
-                $res = true;
+                throw new Exception('Fatal copy resource: ' . $source . ' to ' . $dPath);
             }
+            clearstatcache(true, $dPath);
         }
-        return $res;
+        return true;
     }
 
     /**
@@ -146,10 +143,11 @@ class Dav_PhyOperation
         }
         $appendContentSize = filesize($appendFile);
         if ($appendContentSize === 0) {
+            unlink($appendFile);
             return true;
         }
         if (PHP_OS == 'Linux') {
-            exec('cat ' . $appendFile . ' >> ' . $filePath . ' && rm -fr ' . $filePath, $msg, $status);
+            exec('cat ' . $appendFile . ' >> ' . $filePath . ' && rm -fr ' . $appendFile, $msg, $status);
             if ($status === 0) {
                 return true;
             }
@@ -160,11 +158,11 @@ class Dav_PhyOperation
             $content = file_get_contents($appendFile, false, null, $start, $maxSize);
             $appendSize = file_put_contents($filePath, $content, FILE_APPEND);
             if (false === $appendSize) {
-                return true;
+                return false;
             }
             $start += $appendSize;
         }
-        unlink($appendSize);
+        unlink($appendFile);
         return true;
     }
 
@@ -176,20 +174,19 @@ class Dav_PhyOperation
      */
     public static function move($source, $dest)
     {
-        if (is_dir($dest)) {
-            rmdir($dest);
+        if (is_dir($dest) && substr($dest, -1) != DIRECTORY_SEPARATOR) {
+            self::removePath($dest);
         }
         $res = rename($source, $dest);
-        if (false == $res && PHP_OS == 'Linux') {
-            exec('move -f ' . escapeshellarg($source) . ' ' . escapeshellarg($dest), $msg, $status);
+        if (!$res) {
+            exec((PHP_OS == 'Windows' ? 'move \y' : 'mv -f') . ' ' . escapeshellarg($source) . ' ' . escapeshellarg($dest), $msg, $status);
             if ($status !== 0) {
-                Dav_Log::debug($msg);
-                $res = false;
-            } else {
-                $res = true;
+                throw new Exception('Fatal move resource: ' . $source . ' to ' . $dest);
             }
+            clearstatcache(true, $source);
+            clearstatcache(true, $dest);
         }
-        return $res;
+        return true;
     }
 
     /**
@@ -199,32 +196,26 @@ class Dav_PhyOperation
      */
     public static function getDirSize($dir)
     {
-        if (isset($_SESSION['PHPDAV_DIR_SIZE'][$dir]) && intval($_SESSION['PHPDAV_DIR_SIZE'][$dir])) {
+        if (isset($_SESSION['PHPDAV_DIR_SIZE'][$dir])) {
             return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
         }
-        $_SESSION['PHPDAV_DIR_SIZE'][$dir] = 0;
         if (PHP_OS == 'Linux') {
-            exec('du -b --max-depth=1 ' . $dir, $output, $status);
+            exec('du -b --max-depth=0 ' . $dir, $output, $status);
             if ($status === 0) {
-                foreach ($output as $info) {
-                    $info = preg_split('/\s+/i', $info, 2);
-                    $_SESSION['PHPDAV_DIR_SIZE'][$info[1]] = $info[0];
-                }
+                $_SESSION['PHPDAV_DIR_SIZE'][$dir] = $output[0][0];
+                return $output[0][0];
             }
-        } else {
-            $children = scandir($dir);
-            $children = array_diff($children, ['.', '..']);
-            if (empty($children)) {
-                return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
-            }
-            foreach ($children as $d) {
-                $d = $dir . DIRECTORY_SEPARATOR . $d;
-                if (is_dir($d)) {
-                    $_SESSION['PHPDAV_DIR_SIZE'][$dir] += self::getDirSize($d);
-                } else {
-                    $_SESSION['PHPDAV_DIR_SIZE'][$dir] += filesize($d);
-                }
-            }
+        }
+        $children = scandir($dir);
+        $children = array_diff($children, ['.', '..']);
+        if (empty($children)) {
+            $_SESSION['PHPDAV_DIR_SIZE'][$dir] = 0;
+            return 0;
+        }
+        $_SESSION['PHPDAV_DIR_SIZE'][$dir] = 0;
+        foreach ($children as $d) {
+            $d = $dir . DIRECTORY_SEPARATOR . $d;
+            $_SESSION['PHPDAV_DIR_SIZE'][$dir] += is_dir($d) ? self::getDirSize($d) : filesize($d);
         }
         return $_SESSION['PHPDAV_DIR_SIZE'][$dir];
     }

@@ -28,7 +28,7 @@ class Method_PropPatch extends Dav_Method
             return ['code' => 404];
         }
         $isLocked = $objResource->checkLocked();
-        if ($isLocked && !in_array($objResource->locked_info['locktoken'], $this->arrInput['Lock-Token'])) {
+        if ($isLocked && !(isset($_SESSSION['user']) && in_array($_SESSSION['user'], $objResource->locked_info['owner'])) && !in_array($objResource->locked_info['locktoken'], $this->arrInput['Lock-Token'])) {
             return ['code' => 403];
         }
         $response = ['code' => 503];
@@ -37,12 +37,14 @@ class Method_PropPatch extends Dav_Method
             $response = [
                 'code' => 200,
                 'body' => [
-                    'multistatus', [[
-                                        'response', [
+                    'multistatus',
+                    [[
+                        'response',
+                        [
                             ['href', $_REQUEST['HEADERS']['Uri']],
                             ['propstat', [['prop', $this->arrInput['props']], ['status', Dav_Status::$Msg[200]]]]
                         ]
-                                    ]]
+                    ]]
                 ]
             ];
         }

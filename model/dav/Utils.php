@@ -17,7 +17,7 @@ class Dav_Utils
         'MKCOL'     => 'Mkcol',
         'DELETE'    => 'Delete',
         'COPY'      => 'Copy',
-        'MOVE'      => 'Move',
+        'MOVE'      => 'Move'
     ];
     /**
      * @var array header对应预定义变量
@@ -44,7 +44,7 @@ class Dav_Utils
         'Destination'         => 'HTTP_DESTINATION',
         'Request-Id'          => 'REQUEST_ID',
         'Request-Body-File'   => 'REQUEST_BODY_FILE',
-        'Redirect-Status'     => 'REDIRECT_STATUS',
+        'Redirect-Status'     => 'REDIRECT_STATUS'
     ];
 
     public static $_Body;
@@ -83,9 +83,11 @@ class Dav_Utils
     {
         $documentUri = strtok($_REQUEST['HEADERS']['Uri'], '?');
         $requestPath = str_replace('/', DIRECTORY_SEPARATOR, urldecode($documentUri));
-        $clientCharset = mb_check_encoding($requestPath);
-        if (!empty($clientCharset) && $clientCharset != SERVER_LANG) {
-            $requestPath = mb_convert_encoding($requestPath, SERVER_LANG, $clientCharset);
+        if (empty($_REQUEST['HEADERS']['Charset'])) {
+            $_REQUEST['HEADERS']['Charset'] = mb_detect_encoding($requestPath);
+        }
+        if ($_REQUEST['HEADERS']['Charset'] != SERVER_LANG) {
+            $requestPath = mb_convert_encoding($requestPath, SERVER_LANG, $_REQUEST['HEADERS']['Charset']);
         }
         $_REQUEST['HEADERS']['Base-Name'] = basename($requestPath);
         $_REQUEST['DOCUMENT_ROOT'] = Dao_DavConf::getDavRoot($_REQUEST['HEADERS']['Host']);
@@ -391,21 +393,50 @@ class Dav_Utils
      * @param array $data
      * @return DOMElement
      */
-    public static function xml_encode(DOMDocument &$xmlDoc, array $data)
+    public static function xml_encode(array $data)
     {
         $nsId = isset($data[2]) && is_numeric($data[2]) ? intval($data[2]) : NS_DAV_ID;
         $nsInfo = self::getNsInfoById($nsId);
         $nsUri = $nsInfo['uri'];
         $nsPrefix = $nsInfo['prefix'];
         $qualifiedName = $nsPrefix . ':' . $data[0];
-        if (isset($data[1]) && is_array($data[1]) && !empty($data[1])) {
-            $element = $xmlDoc->createElementNS($nsUri, $qualifiedName);
+        if (!empty($data[1]) && is_array($data[1])) {
+            $nsMap = [$nsPrefix => 'xmlns:' . $nsPrefix . '="' . $nsUri . '"'];
+            $element = '';
             foreach ($data[1] as $node) {
-                $value = self::xml_encode($xmlDoc, $node);
-                $element->appendChild($value);
+                $element .= self::item_encode($node, $nsMap);
             }
+            $element = '<' . $qualifiedName . ' ' . implode(' ', $nsMap) . '>' . $element . "</" . $qualifiedName . '>';
         } else {
-            $element = $xmlDoc->createElementNS($nsUri, $qualifiedName, !isset($data[1]) || is_array($data[1]) ? null : strval($data[1]));
+            $element = '<' . $qualifiedName . ' xmlns:' . $nsPrefix . '="' . $nsUri . '"' . (!isset($data[1]) || $data[1] === '' || is_array($data[1])) ? '/>' : ('>' . strval($data[1]) . '</' . $qualifiedName . '>');
+        }
+        $element = '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $element;
+        return $element;
+    }
+
+    /**
+     * @param array $data
+     * @param array $nsMap
+     * @return string
+     */
+    public static function item_encode(array $data, array &$nsMap)
+    {
+        $nsId = isset($data[2]) && is_numeric($data[2]) ? intval($data[2]) : NS_DAV_ID;
+        $nsInfo = self::getNsInfoById($nsId);
+        $nsUri = $nsInfo['uri'];
+        $nsPrefix = $nsInfo['prefix'];
+        if (empty($nsMap[$nsPrefix])) {
+            $nsMap[$nsPrefix] = 'xmlns:' . $nsPrefix . '="' . $nsUri . '"';
+        }
+        $qualifiedName = $nsPrefix . ':' . $data[0];
+        if (!empty($data[1]) && is_array($data[1])) {
+            $element = '<' . $qualifiedName . '>';
+            foreach ($data[1] as $node) {
+                $element .= self::item_encode($node, $nsMap);
+            }
+            $element .= '</' . $qualifiedName . '>';
+        } else {
+            $element = '<' . $qualifiedName . ((isset($data[1]) && $data[1] !== '' && !is_array($data[1])) ? ('>' . strval($data[1]) . '</' . $qualifiedName . '>') : '/>');
         }
         return $element;
     }
@@ -435,24 +466,27 @@ class Dav_Utils
 
     public static function auth()
     {
+        if (empty($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']])) {
+            $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']] = $_SERVER['NET_DISKS']['default'];
+        }
         if (empty($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['is_auth']) || !empty($_SESSION['auth'])) {
             return true;
         }
-
         if (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
             if (isset($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$_SERVER['PHP_AUTH_USER']]) && $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$_SERVER['PHP_AUTH_USER']] == $_SERVER['PHP_AUTH_PW']) {
                 $_SESSION['auth'] = true;
+                $_SESSION['user'] = $_SERVER['PHP_AUTH_USER'];
                 return true;
             }
             throw new Exception(Dav_Status::$Msg['403'], 403);
         }
-
         if (isset($_REQUEST['HEADERS']['Authorization'])) {
             $authInfo = preg_split('/\s+/', $_REQUEST['HEADERS']['Authorization']);
             $authInfo = base64_decode(trim($authInfo[1]));
             $authInfo = explode(':', $authInfo);
             if (isset($_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$authInfo[0]]) && $_SERVER['NET_DISKS'][$_REQUEST['DAV_HOST']]['user_list'][$authInfo[0]] == $authInfo[1]) {
                 $_SESSION['auth'] = true;
+                $_SESSION['user'] = $authInfo[0];
                 return true;
             }
             throw new Exception(Dav_Status::$Msg['403'], 403);
@@ -472,20 +506,18 @@ class Dav_Utils
         }
         if (!isset($data['body'])) {
             $headers[] = 'Content-Length: 0';
-            $headers[] = 'User-Agent: phpdav/2.0(Unix)';
-            $headers[] = 'Server: phpdav/2.0(Unix)';
-        } elseif (is_array($data['body'])) {
-            $xmlDoc = new DOMDocument('1.0', 'UTF-8');
-            $xmlDoc->formatOutput = true;
-            $element = self::xml_encode($xmlDoc, $data['body']);
-            $xmlDoc->appendChild($element);
-            $data['body'] = trim($xmlDoc->saveXML());
-            $headers[] = 'Content-Type: application/xml; charset=UTF-8';
+            $headers[] = 'User-Agent: phpdav/2.1(Unix)';
+            $headers[] = 'Server: phpdav/2.1(Unix)';
+        } else {
+            if (is_array($data['body'])) {
+                $data['body'] = self::xml_encode($data['body']);
+                $headers[] = 'Content-Type: application/xml; charset=UTF-8';
+            }
             $headers[] = 'Content-Length: ' . strlen($data['body']);
         }
         $headers = array_unique($headers);
         self::response_headers($headers);
-        if (isset($data['body']) && is_string($data['body'])) {
+        if (isset($data['body'])) {
             self::response_body($data['body']);
         }
     }
