@@ -42,7 +42,7 @@ else
 fi
 [ ! -z "$PROCESS_NUM" ] && echo '$process_num='$PROCESS_NUM';' >> $BASE_ROOT/conf/.dav_info.php
 
-PHPDAV_EXEC="$BASE_ROOT/lib/PhpDavServer.php"
+PHPDAV_EXEC="-f $BASE_ROOT/lib/PhpDavServer.php"
 
 pd_status(){
     process_num=`ps -aux|grep "php $PHPDAV_EXEC"|grep -v 'grep'|wc -l`

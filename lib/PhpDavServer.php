@@ -13,21 +13,29 @@ try {
                 'local_cert'   => $local_cert,
             ]
         ];
+        $protocol = [
+            'open_ssl'      => true,
+            'ssl_cert_file' => $local_cert,
+            'ssl_key_file'  => $local_pk,
+        ];
         if (!empty($local_pk)) {
             $opts['ssl']['local_pk'] = $local_pk;
         }
         if (!empty($passphrase)) {
             $opts['ssl']['passphrase'] = $passphrase;
+            $protocol['ssl_dhparam'] = $passphrase;
         }
         if (!empty($verify_peer) && !empty($cafile)) {
             $opts['ssl']['verify_peer'] = true;
             $opts['ssl']['cafile'] = $cafile;
+            $protocol['ssl_verify_peer'] = true;
+            $protocol['ssl_allow_self_signed'] = true;
+            $protocol['ssl_client_cert_file'] = $cafile;
         }
     }
     $_SERVER['DAV']['socket'] = $listen_address;
     $_SERVER['DAV']['context'] = stream_context_create($opts);
-    define('PROCESS_NUM', !empty($process_num) && is_numeric($process_num) ? intval($process_num) : 1);
-    session_start();
+    define('PROCESS_NUM', !empty($process_num) && is_numeric($process_num) ? intval($process_num) : 2);
 
     class PhpDavServer
     {
@@ -45,13 +53,10 @@ try {
             if (!$this->sock) {
                 return false;
             }
-            $this->run();
-
             $process_num = intval(PROCESS_NUM);
             if (!function_exists('pcntl_fork')) {
                 $process_num = 0;
             } else {
-                $fail_num = 0;
                 for ($i = 0; $i < $process_num; ++$i) {
                     $pid = @pcntl_fork();
                     if ($pid == 0) {
@@ -59,10 +64,9 @@ try {
                         break;
                     }
                     if ($pid < 0) {
-                        ++$fail_num;
+                        --$process_num;
                     }
                 }
-                $process_num -= $fail_num;
             }
             if ($process_num == 0) {
                 $this->run();
@@ -75,7 +79,8 @@ try {
         private function conn()
         {
             if (!$this->sock) {
-                $this->sock = @stream_socket_server($_SERVER['DAV']['socket'],$error_no,$error_msg,STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
+                $this->sock = @stream_socket_server($_SERVER['DAV']['socket'], $error_no, $error_msg, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $_SERVER['DAV']['context']);
+                stream_set_blocking($this->sock, 0);
             }
             if ($this->sock) {
                 return true;
@@ -102,8 +107,7 @@ try {
         private function run()
         {
             while ($this->conn()) {
-                self::$conn = @stream_socket_accept($this->sock, 0);
-                if (self::$conn) {
+                while (self::$conn = stream_socket_accept($this->sock, -1)) {
                     $headers = $this->getHeaders();
                     if (is_array($headers)) {
                         try {
@@ -133,8 +137,8 @@ try {
                             $this->responseMsg($msg);
                         }
                     }
-                    @fclose(self::$conn);
                     unset($_COOKIE);
+                    fclose(self::$conn);
                 }
             }
         }
@@ -281,7 +285,7 @@ try {
                     $responseHeaders[] = 'Set-Cookie: ' . $k . '=' . rawurlencode($v);
                 }
             }
-            $responseHeaders[] = 'User-Agent: phpdav/1.1';
+            $responseHeaders[] = 'User-Agent: phpdav/2.1';
             $responseHeaders = array_unique($responseHeaders);
             unset($_COOKIE);
         }
@@ -372,6 +376,7 @@ try {
             return $len;
         }
     }
+
     PhpDavServer::start();
 } catch (Exception $e) {
     $msg='fatal error in ' . $e->getFile() . ':' . $e->getLine() . '. error code: ' . $e->getCode() . ', msg:' . $e->getMessage();
