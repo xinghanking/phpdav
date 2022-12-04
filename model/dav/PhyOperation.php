@@ -190,7 +190,7 @@ class Dav_PhyOperation
     }
 
     /**
-     * 获取文件目录大小
+     * 不准确的获取文件目录大小
      * @param string $dir 文件目录路径
      * @return int
      */
