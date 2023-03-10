@@ -2,6 +2,12 @@
 使用php开发实现webdav协议的项目
 
 #更新说明
+phpdav3.0增加对event、swoole扩展的支持
+如果安装了event扩展，使用方法不变；
+如果安装了Swoole扩展，可在安装目中执行
+   bin/phpswooldav
+启动webdav站点，使用方法同 bin/phpdav
+
 phpdav2.0可不依赖nginx
 
 php版本至少php5.4以上

@@ -506,8 +506,8 @@ class Dav_Utils
         }
         if (!isset($data['body'])) {
             $headers[] = 'Content-Length: 0';
-            $headers[] = 'User-Agent: phpdav/2.1(Unix)';
-            $headers[] = 'Server: phpdav/2.1(Unix)';
+            $headers[] = 'User-Agent: phpdav/3.0(Unix)';
+            $headers[] = 'Server: phpdav/3.0(Unix)';
         } else {
             if (is_array($data['body'])) {
                 $data['body'] = self::xml_encode($data['body']);

@@ -404,7 +404,12 @@ try {
         }
     }
 
-    PhpDavServer::start();
+    if (extension_loaded('swoole') && !empty($is_swoole)) {
+        require_once 'SwooleServer.php';
+        SwooleServer::start();
+    } else {
+        PhpDavServer::start();
+    }
 } catch (Exception $e) {
     $msg = 'fatal error in ' . $e->getFile() . ':' . $e->getLine() . '. error code: ' . $e->getCode() . ', msg:' . $e->getMessage();
     file_put_contents('php://stderr', $msg);
